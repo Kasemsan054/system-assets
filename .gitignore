@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Env files — DO NOT commit secrets
+.env
+.env.local
+.env*.local
+
+# Wrangler local state
+.wrangler/
+d1/local.sqlite
+d1/local.sqlite-wal
+d1/local.sqlite-shm
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts
+
+# Backup files
+*.bak

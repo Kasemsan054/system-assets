@@ -1,0 +1,10 @@
+name = "system-assets"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "system-assets-db"
+database_id = "9b5674d3-c3ae-4121-bfc4-fd5c928a39ad" # ใส่ Cloudflare D1 database_id จริงเมื่อพร้อม deploy
+migrations_dir = "d1/migrations"
