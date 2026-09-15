@@ -23,6 +23,7 @@ function AssetsList() {
   const {
     db,
     isLoaded,
+    getNextAssetId,
     addAsset,
     updateAsset,
     deleteAsset,
@@ -54,6 +55,7 @@ function AssetsList() {
 
   // Form fields
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
     categoryId: '',
     status: 'ready' as AssetStatus,
@@ -82,10 +84,11 @@ function AssetsList() {
     const list = db.assets.filter((a) => {
       if (search.trim()) {
         const q = search.toLowerCase();
+        const matchId = (a.id || '').toLowerCase().includes(q);
         const matchName = a.name.toLowerCase().includes(q);
         const matchSerial = (a.serial || '').toLowerCase().includes(q);
         const matchHolder = (holderDisplayName(a) || '').toLowerCase().includes(q);
-        if (!matchName && !matchSerial && !matchHolder) return false;
+        if (!matchId && !matchName && !matchSerial && !matchHolder) return false;
       }
       if (filterCategory && a.categoryId !== filterCategory) return false;
       if (filterStatus && a.status !== filterStatus) return false;
@@ -159,6 +162,7 @@ function AssetsList() {
     try {
       const exportItems = db.assets.filter((a) => selectedIds.includes(a.id));
       const rows = exportItems.map((a) => ({
+        'รหัสทรัพย์สิน': a.id,
         'ชื่อทรัพย์สิน': a.name,
         'หมวดหมู่': getCategory(a.categoryId)?.name || '',
         'ผู้ถือครอง': holderDisplayName(a) || '',
@@ -182,11 +186,14 @@ function AssetsList() {
 
   const openAddModal = () => {
     setEditingAsset(null);
+    const catId = db.categories[0]?.id || '';
+    const pDate = new Date().toISOString().slice(0, 10);
     setFormData({
+      id: getNextAssetId(catId, pDate),
       name: '',
-      categoryId: db.categories[0]?.id || '',
+      categoryId: catId,
       status: 'ready',
-      purchaseDate: new Date().toISOString().slice(0, 10),
+      purchaseDate: pDate,
       returnDate: '',
       holderName: '',
       location: '',
@@ -199,6 +206,7 @@ function AssetsList() {
   const openEditModal = (asset: Asset) => {
     setEditingAsset(asset);
     setFormData({
+      id: asset.id,
       name: asset.name,
       categoryId: asset.categoryId,
       status: asset.status,
@@ -231,6 +239,7 @@ function AssetsList() {
       });
     } else {
       addAsset({
+        id: formData.id.trim(),
         name: formData.name.trim(),
         categoryId: formData.categoryId,
         status: formData.status,
@@ -252,6 +261,7 @@ function AssetsList() {
   const exportFilteredToExcel = () => {
     try {
       const rows = filteredAssets.map((a) => ({
+        'รหัสทรัพย์สิน': a.id,
         'ชื่อทรัพย์สิน': a.name,
         'หมวดหมู่': getCategory(a.categoryId)?.name || '',
         'ผู้ถือครอง': holderDisplayName(a) || '',
@@ -421,13 +431,29 @@ function AssetsList() {
                       />
                     </td>
                     <td>
-                      <Link
-                        href={`/assets/${asset.id}`}
-                        style={{ fontWeight: 600, color: 'var(--ink-900)', textDecoration: 'none' }}
-                      >
-                        {asset.name}
-                      </Link>
-                      <div className="cell-sub">เบิกเมื่อ: {fmtDate(asset.purchaseDate)}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          fontSize: 11.5,
+                          background: 'var(--navy-50, #eff6ff)',
+                          color: 'var(--navy-800, #1e40af)',
+                          padding: '1.5px 6px',
+                          borderRadius: 4,
+                          border: '1px solid var(--navy-200, #bfdbfe)',
+                          display: 'inline-block',
+                          lineHeight: 1.4,
+                        }}>
+                          {asset.id}
+                        </span>
+                        <Link
+                          href={`/assets/${asset.id}`}
+                          style={{ fontWeight: 600, color: 'var(--ink-900)', textDecoration: 'none' }}
+                        >
+                          {asset.name}
+                        </Link>
+                      </div>
+                      <div className="cell-sub" style={{ marginTop: 3 }}>เบิกเมื่อ: {fmtDate(asset.purchaseDate)}</div>
                     </td>
                     <td>
                       <span className="badge-pill">{catName}</span>
@@ -536,6 +562,55 @@ function AssetsList() {
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-grid">
+              {/* Asset ID Field */}
+              <div className="field full">
+                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>รหัสทรัพย์สิน (Asset ID) <span className="req">*</span></span>
+                  {!editingAsset && (
+                    <button
+                      type="button"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--navy-800, #1e40af)',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: 0,
+                        fontWeight: 600,
+                      }}
+                      onClick={() => {
+                        const nextId = getNextAssetId(formData.categoryId, formData.purchaseDate);
+                        setFormData((prev) => ({ ...prev, id: nextId }));
+                      }}
+                    >
+                      <Icons.refresh size={12} /> สร้างรหัสอัตโนมัติ
+                    </button>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="เช่น IT-2569-0001"
+                  value={formData.id}
+                  disabled={!!editingAsset}
+                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                  style={{
+                    fontFamily: 'monospace',
+                    fontWeight: 600,
+                    letterSpacing: '0.5px',
+                    background: editingAsset ? 'var(--paper-alt)' : undefined,
+                  }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 4 }}>
+                  {editingAsset
+                    ? 'รหัสทรัพย์สินเป็นรหัสอ้างอิงหลักในระบบ ไม่สามารถแก้ไขได้'
+                    : 'ระบบสร้างรหัสให้อัตโนมัติตามหมวดหมู่และปี พ.ศ. (สามารถแก้ไขได้ตามต้องการ)'}
+                </div>
+              </div>
+
               <div className="field full">
                 <label>
                   ชื่อทรัพย์สิน <span className="req">*</span>
@@ -560,7 +635,16 @@ function AssetsList() {
                     label: `${c.name} (${c.code})`,
                   }))}
                   value={formData.categoryId}
-                  onChange={(val) => setFormData({ ...formData, categoryId: val })}
+                  onChange={(val) => {
+                    const currentNextId = getNextAssetId(formData.categoryId, formData.purchaseDate);
+                    const isAuto = !formData.id || formData.id === currentNextId;
+                    const newNextId = getNextAssetId(val, formData.purchaseDate);
+                    setFormData({
+                      ...formData,
+                      categoryId: val,
+                      id: !editingAsset && isAuto ? newNextId : formData.id,
+                    });
+                  }}
                   placeholder="-- เลือกหมวดหมู่ --"
                 />
               </div>
@@ -587,7 +671,16 @@ function AssetsList() {
                 <CustomDatePicker
                   required
                   value={formData.purchaseDate}
-                  onChange={(val) => setFormData({ ...formData, purchaseDate: val })}
+                  onChange={(val) => {
+                    const currentNextId = getNextAssetId(formData.categoryId, formData.purchaseDate);
+                    const isAuto = !formData.id || formData.id === currentNextId;
+                    const newNextId = getNextAssetId(formData.categoryId, val);
+                    setFormData({
+                      ...formData,
+                      purchaseDate: val,
+                      id: !editingAsset && isAuto ? newNextId : formData.id,
+                    });
+                  }}
                   fullWidth
                 />
               </div>

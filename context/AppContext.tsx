@@ -14,7 +14,7 @@ import {
   UserRole,
   STATUS_LABELS,
 } from '@/types';
-import { uid, normalizeDateForImport } from '@/lib/utils';
+import { uid, normalizeDateForImport, generateAssetId } from '@/lib/utils';
 import { CustomDialog } from '@/components/CustomDialog';
 import { Icons } from '@/components/Icons';
 
@@ -86,7 +86,8 @@ interface AppContextType {
   holderDisplayName: (asset?: Asset) => string;
 
   // Actions
-  addAsset: (asset: Omit<Asset, 'id'>) => string;
+  getNextAssetId: (categoryId?: string, purchaseDate?: string | null) => string;
+  addAsset: (asset: Partial<Asset> & Omit<Asset, 'id'>) => string;
   updateAsset: (id: string, updates: Partial<Asset>, silent?: boolean) => void;
   deleteAsset: (id: string) => void;
 
@@ -346,9 +347,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return (asset.holderName && asset.holderName.trim()) || getEmployee(asset.holderId || undefined)?.name || '';
   };
 
+  const getNextAssetId = (categoryId?: string, purchaseDate?: string | null) => {
+    const category = getCategory(categoryId);
+    return generateAssetId(category?.code, purchaseDate, db.assets);
+  };
+
   // Asset actions
-  const addAsset = (assetData: Omit<Asset, 'id'>) => {
-    const newId = uid('ast');
+  const addAsset = (assetData: Partial<Asset> & Omit<Asset, 'id'>) => {
+    const category = getCategory(assetData.categoryId);
+    const defaultId = generateAssetId(category?.code, assetData.purchaseDate, db.assets);
+    const newId = (assetData.id && assetData.id.trim()) ? assetData.id.trim() : defaultId;
     const newAsset: Asset = { ...assetData, id: newId };
     saveDatabase({
       ...db,
@@ -1004,6 +1012,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         getEmployee,
         getAsset,
         holderDisplayName,
+        getNextAssetId,
         addAsset,
         updateAsset,
         deleteAsset,

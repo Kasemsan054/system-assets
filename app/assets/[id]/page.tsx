@@ -259,11 +259,25 @@ export default function AssetDetailPage() {
         <div className="card-pad">
           <div className="detail-head">
             <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                <span style={{
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  background: 'var(--navy-50, #eff6ff)',
+                  color: 'var(--navy-800, #1e40af)',
+                  border: '1px solid var(--navy-200, #bfdbfe)',
+                  padding: '2.5px 9px',
+                  borderRadius: 6,
+                }}>
+                  {asset.id}
+                </span>
+                <span className={`tag ${statusInfo.cls}`}>
+                  <span className="tag-dot" />
+                  {statusInfo.label}
+                </span>
+              </div>
               <div className="detail-title">{asset.name}</div>
-              <span className={`tag ${statusInfo.cls}`}>
-                <span className="tag-dot" />
-                {statusInfo.label}
-              </span>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button className="btn btn-outline btn-sm" onClick={openEditModal}>
@@ -302,6 +316,12 @@ export default function AssetDetailPage() {
           </div>
 
           <div className="kv-grid">
+            <div className="kv-item">
+              <div className="k">รหัสทรัพย์สิน (Asset ID)</div>
+              <div className="v" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--navy-800, #1e40af)' }}>
+                {asset.id}
+              </div>
+            </div>
             <div className="kv-item">
               <div className="k">หมวดหมู่</div>
               <div className="v">{category ? `${category.name} (${category.code})` : '-'}</div>
@@ -387,6 +407,20 @@ export default function AssetDetailPage() {
         <form onSubmit={handleEditSubmit}>
           <div className="modal-body">
             <div className="form-grid">
+              <div className="field full">
+                <label>รหัสทรัพย์สิน (Asset ID)</label>
+                <input
+                  type="text"
+                  disabled
+                  value={asset.id}
+                  style={{
+                    fontFamily: 'monospace',
+                    fontWeight: 600,
+                    background: 'var(--paper-alt, #f8fafc)',
+                  }}
+                />
+              </div>
+
               <div className="field full">
                 <label>
                   ชื่อทรัพย์สิน <span className="req">*</span>

@@ -40,3 +40,27 @@ export function normalizeDateForImport(v: unknown): string {
   if (!isNaN(parsed.getTime()) && /\d{4}/.test(s)) return parsed.toISOString().slice(0, 10);
   return s;
 }
+
+export function generateAssetId(
+  categoryCode?: string,
+  purchaseDate?: string | null,
+  existingAssets: { id: string }[] = []
+): string {
+  const code = (categoryCode || 'AST').toUpperCase().trim().replace(/[^A-Z0-9]/g, '') || 'AST';
+  const year = thaiYear(purchaseDate);
+  const prefix = `${code}-${year}-`;
+
+  let maxSeq = 0;
+  for (const a of existingAssets) {
+    if (a.id && a.id.startsWith(prefix)) {
+      const rest = a.id.slice(prefix.length);
+      const num = parseInt(rest, 10);
+      if (!isNaN(num) && num > maxSeq) {
+        maxSeq = num;
+      }
+    }
+  }
+
+  return `${prefix}${pad(maxSeq + 1, 4)}`;
+}
+
