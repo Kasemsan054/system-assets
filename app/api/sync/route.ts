@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, ensureTables } from '@/lib/db';
 import { hashPassword } from '@/lib/crypto';
 
 export async function GET() {
   try {
     const db = getDb();
+    await ensureTables(db);
 
     const [categories, departments, employees, assets, assignments, maintenance, settings] = await Promise.all([
       db.prepare('SELECT id, code, name FROM categories ORDER BY code ASC').all(),
@@ -46,6 +47,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const db = getDb();
+    await ensureTables(db);
     const body = await req.json();
 
     // If client sends full database state to push to D1

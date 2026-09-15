@@ -168,6 +168,126 @@ function createLocalSqliteDb(): D1Database {
 
 let _localInstance: D1Database | null = null;
 
+/** SQL DDL for all tables — used by ensureTables() to self-heal missing schema */
+const SCHEMA_DDL = `
+CREATE TABLE IF NOT EXISTS departments (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS employees (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT,
+  must_change_password INTEGER DEFAULT 0,
+  role TEXT DEFAULT 'user',
+  position TEXT,
+  department_id TEXT REFERENCES departments(id) ON DELETE SET NULL,
+  location TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS assets (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category_id TEXT REFERENCES categories(id) ON DELETE RESTRICT,
+  department_id TEXT REFERENCES departments(id) ON DELETE SET NULL,
+  holder_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  holder_name TEXT,
+  purchase_date TEXT,
+  return_date TEXT,
+  status TEXT DEFAULT 'ready',
+  location TEXT,
+  vendor TEXT,
+  serial TEXT,
+  note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS assignments (
+  id TEXT PRIMARY KEY,
+  asset_id TEXT NOT NULL,
+  employee_id TEXT NOT NULL,
+  department_id TEXT,
+  date_out TEXT NOT NULL,
+  date_return TEXT,
+  note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS maintenance (
+  id TEXT PRIMARY KEY,
+  asset_id TEXT NOT NULL,
+  date TEXT NOT NULL,
+  type TEXT NOT NULL,
+  vendor TEXT,
+  description TEXT,
+  status TEXT DEFAULT 'in_progress',
+  completed_date TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_employees_username ON employees(username);
+CREATE INDEX IF NOT EXISTS idx_employees_dept ON employees(department_id);
+CREATE INDEX IF NOT EXISTS idx_categories_code ON categories(code);
+CREATE INDEX IF NOT EXISTS idx_assets_category ON assets(category_id);
+CREATE INDEX IF NOT EXISTS idx_assets_dept ON assets(department_id);
+CREATE INDEX IF NOT EXISTS idx_assets_holder ON assets(holder_id);
+CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
+CREATE INDEX IF NOT EXISTS idx_assignments_asset ON assignments(asset_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_emp ON assignments(employee_id);
+CREATE INDEX IF NOT EXISTS idx_maintenance_asset ON maintenance(asset_id);
+`;
+
+const SEED_SQL = `
+INSERT OR IGNORE INTO system_settings (key, value) VALUES
+  ('orgName', 'บริษัท ควอนตัม ซิสเต็ม โพรเทคชั่น จำกัด'),
+  ('orgSub', 'ระบบทะเบียนคุมทรัพย์สินและครุภัณฑ์ (Asset Registry)'),
+  ('adminPin', '1234');
+INSERT OR IGNORE INTO employees (id, name, username, password, must_change_password, role, position, location) VALUES
+  ('emp_admin_system', 'ผู้ดูแลระบบ (Admin)', 'admin', 'ad6e58a3d80fee65064e90519d4effd7d7288157b2305d2b5472143947d6a421', 0, 'admin', 'ผู้ดูแลระบบสารสนเทศ', 'ศูนย์คอมพิวเตอร์');
+`;
+
+let _tablesEnsured = false;
+
+/**
+ * Ensures all required tables exist in the DB.
+ * Safe to call multiple times — uses CREATE TABLE IF NOT EXISTS.
+ * Call this once per request from any API route that touches D1.
+ */
+export async function ensureTables(db: D1Database): Promise<void> {
+  if (_tablesEnsured) return;
+  try {
+    // D1 exec doesn't support multiple statements; split on semicolons
+    const stmts = SCHEMA_DDL.split(';').map(s => s.trim()).filter(Boolean);
+    for (const stmt of stmts) {
+      await db.prepare(stmt).run();
+    }
+    // Seed defaults if settings is empty
+    try {
+      const row = await db.prepare('SELECT COUNT(*) as cnt FROM system_settings').first<{ cnt: number }>();
+      if (!row || row.cnt === 0) {
+        const seedStmts = SEED_SQL.split(';').map(s => s.trim()).filter(Boolean);
+        for (const stmt of seedStmts) {
+          await db.prepare(stmt).run();
+        }
+      }
+    } catch { /* ignore seed errors */ }
+    _tablesEnsured = true;
+  } catch (e: any) {
+    // Non-fatal: tables may already exist in Cloudflare D1 which doesn't support all DDL
+    console.warn('[ensureTables] warning:', e?.message);
+  }
+}
+
 /**
  * Returns a D1-compatible DB instance. Priority:
  * 1. Cloudflare native D1 binding (Workers / Pages edge runtime)

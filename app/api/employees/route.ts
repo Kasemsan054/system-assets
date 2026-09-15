@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, ensureTables } from '@/lib/db';
 import { hashPassword } from '@/lib/crypto';
 
 export async function GET() {
   try {
     const db = getDb();
+    await ensureTables(db);
     const result = await db.prepare(
       `SELECT id, name, username, password, must_change_password as mustChangePassword, 
               role, position, department_id as department, location, created_at as createdAt
