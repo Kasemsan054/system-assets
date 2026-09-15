@@ -85,14 +85,6 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="helper-note">
-        <Icons.info size={16} />
-        <div>
-          ยินดีต้อนรับเข้าสู่ระบบทะเบียนทรัพย์สิน ข้อมูลทั้งหมดถูกบันทึกไว้ในเบราว์เซอร์นี้โดยอัตโนมัติ — ใช้เมนู{' '}
-          <b>ตั้งค่าระบบ</b> เพื่อสำรอง/นำเข้าข้อมูลเป็นไฟล์ Excel (.xlsx) ได้ทุกเมื่อ
-        </div>
-      </div>
-
       {/* KPI Cards */}
       <div className="grid grid-3" style={{ marginBottom: 16 }}>
         <div className="card kpi-card">

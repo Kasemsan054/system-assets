@@ -36,12 +36,7 @@ export default function SettingsPage() {
     showToast,
     confirmDialog,
     getDepartment,
-    isD1Connected,
-    syncWithD1,
   } = useApp();
-
-  // activeTab removed for single page layout
-  const [isSyncingD1, setIsSyncingD1] = useState(false);
 
   // Organization form
   const [orgName, setOrgName] = useState('');
@@ -706,101 +701,6 @@ export default function SettingsPage() {
 
       {/* Section: Advanced Management */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Cloudflare D1 Database Card */}
-          <div className="card">
-            <div className="card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 18 }}>☁️</span>
-                <h3 style={{ margin: 0 }}>ฐานข้อมูล Cloudflare D1 (Serverless Database)</h3>
-              </div>
-              <span className="badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: isD1Connected ? '#10b981' : '#3b82f6', display: 'inline-block' }}></span>
-                {isD1Connected ? 'เชื่อมต่อ Cloudflare D1 สำเร็จ (Online)' : 'เชื่อมต่อฐานข้อมูล D1 Engine'}
-              </span>
-            </div>
-            <div className="card-pad">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
-                <div style={{ background: 'var(--paper-alt)', padding: '12px 14px', borderRadius: 'var(--radius-s)', border: '1px solid var(--line)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 2 }}>ฐานข้อมูล (D1 Database)</div>
-                  <div style={{ fontWeight: 600, color: 'var(--ink-800)', fontSize: 13.5 }}>system-assets-db</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-400)', marginTop: 2 }}>Binding: DB (SQLite Engine)</div>
-                </div>
-                <div style={{ background: 'var(--paper-alt)', padding: '12px 14px', borderRadius: 'var(--radius-s)', border: '1px solid var(--line)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 2 }}>ทรัพย์สินในระบบ</div>
-                  <div style={{ fontWeight: 700, color: 'var(--navy-800)', fontSize: 18 }}>{db.assets.length} <span style={{ fontSize: 12, fontWeight: 400 }}>รายการ</span></div>
-                </div>
-                <div style={{ background: 'var(--paper-alt)', padding: '12px 14px', borderRadius: 'var(--radius-s)', border: '1px solid var(--line)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 2 }}>หมวดหมู่และแผนก</div>
-                  <div style={{ fontWeight: 700, color: 'var(--navy-800)', fontSize: 18 }}>{db.categories.length} / {db.departments.length}</div>
-                </div>
-                <div style={{ background: 'var(--paper-alt)', padding: '12px 14px', borderRadius: 'var(--radius-s)', border: '1px solid var(--line)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 2 }}>บุคลากรและประวัติซ่อม</div>
-                  <div style={{ fontWeight: 700, color: 'var(--navy-800)', fontSize: 18 }}>{db.employees.length} / {db.maintenance.length}</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  disabled={isSyncingD1}
-                  onClick={async () => {
-                    setIsSyncingD1(true);
-                    try {
-                      await syncWithD1();
-                      showToast('ซิงค์ข้อมูลกับ Cloudflare D1 เรียบร้อยแล้ว');
-                    } catch {
-                      showToast('ไม่สามารถซิงค์กับฐานข้อมูล D1 ได้', 'error');
-                    } finally {
-                      setIsSyncingD1(false);
-                    }
-                  }}
-                >
-                  <Icons.refresh size={14} className={isSyncingD1 ? 'spin' : ''} /> {isSyncingD1 ? 'กำลังซิงค์ข้อมูล...' : 'ซิงค์ข้อมูลกับ D1 ทันที'}
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={async () => {
-                    const ok = await confirmDialog({
-                      title: 'ยืนยันการส่งข้อมูลขึ้นฐานข้อมูล D1',
-                      message: 'คุณต้องการส่งข้อมูลปัจจุบันทั้งหมดบันทึกทับลงฐานข้อมูล Cloudflare D1 หรือไม่?',
-                      type: 'warning',
-                      confirmText: 'บันทึกขึ้น D1',
-                    });
-                    if (ok) {
-                      setIsSyncingD1(true);
-                      try {
-                        const res = await fetch('/api/sync', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(db),
-                        });
-                        if (res.ok) {
-                          showToast('ส่งข้อมูลขึ้น Cloudflare D1 สำเร็จเรียบร้อย');
-                        } else {
-                          showToast('เกิดข้อผิดพลาดในการส่งข้อมูล', 'error');
-                        }
-                      } catch {
-                        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
-                      } finally {
-                        setIsSyncingD1(false);
-                      }
-                    }
-                  }}
-                >
-                  <Icons.upload size={14} /> ส่งข้อมูลปัจจุบันทั้งหมดขึ้น D1
-                </button>
-              </div>
-
-              <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.6 }}>
-                💡 <b>คำแนะนำการ Deploy:</b> ไฟล์คอนฟิกอยู่ที่ <code>wrangler.toml</code> สามารถสั่งรัน Migration ด้วยคำสั่ง <code>npm run d1:migrate:local</code> (สำหรับทดสอบในเครื่อง) หรือ <code>npm run d1:migrate:remote</code> (สำหรับ Cloudflare Production)
-              </div>
-            </div>
-          </div>
-
-
           <div className="card" style={{ borderColor: '#fca5a5' }}>
             <div className="card-head" style={{ background: '#fef2f2', borderBottomColor: '#fecaca' }}>
               <h3 style={{ color: 'var(--red-700)' }}>พื้นที่จัดการข้อมูลขั้นสูง (Danger Zone)</h3>
