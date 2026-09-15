@@ -450,14 +450,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: newId, name: name.trim() }),
     }).catch((err) => console.warn('D1 sync error:', err));
-    showToast('เพิ่มหน่วยงานเรียบร้อยแล้ว');
+    showToast('เพิ่มแผนกเรียบร้อยแล้ว');
     return newId;
   };
 
   const deleteDepartment = (id: string) => {
-    const inUse = db.assets.some((a) => a.departmentId === id);
+    const dept = db.departments.find((d) => d.id === id);
+    const inUse = db.employees.some((e) => e.department === id || (dept && e.department === dept.name));
     if (inUse) {
-      showToast('ไม่สามารถลบได้ เนื่องจากมีทรัพย์สินอยู่ในหน่วยงานนี้', true);
+      showToast('ไม่สามารถลบได้ เนื่องจากมีบุคลากรสังกัดอยู่ในแผนกนี้', true);
       return false;
     }
     saveDatabase({
@@ -467,7 +468,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     fetch(`/api/departments?id=${id}`, {
       method: 'DELETE',
     }).catch((err) => console.warn('D1 sync error:', err));
-    showToast('ลบหน่วยงานเรียบร้อยแล้ว');
+    showToast('ลบแผนกเรียบร้อยแล้ว');
     return true;
   };
 

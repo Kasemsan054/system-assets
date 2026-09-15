@@ -129,10 +129,10 @@ export default function SettingsPage() {
 
   const handleDeleteSingleDept = async (id: string, name: string) => {
     const ok = await confirmDialog({
-      title: 'ยืนยันการลบหน่วยงาน',
-      message: `คุณต้องการลบหน่วยงาน "${name}" หรือไม่?`,
+      title: 'ยืนยันการลบแผนก',
+      message: `คุณต้องการลบแผนก "${name}" หรือไม่?`,
       type: 'danger',
-      confirmText: 'ลบหน่วยงาน',
+      confirmText: 'ลบแผนก',
     });
     if (ok) {
       deleteDepartment(id);
@@ -143,8 +143,8 @@ export default function SettingsPage() {
   const handleBatchDeleteDept = async () => {
     if (deptSelectedIds.length === 0) return;
     const ok = await confirmDialog({
-      title: 'ยืนยันการลบหน่วยงานหลายรายการ',
-      message: `คุณต้องการลบหน่วยงานที่เลือกทั้งหมด ${deptSelectedIds.length} รายการหรือไม่?`,
+      title: 'ยืนยันการลบแผนกหลายรายการ',
+      message: `คุณต้องการลบแผนกที่เลือกทั้งหมด ${deptSelectedIds.length} รายการหรือไม่?`,
       type: 'danger',
       confirmText: 'ลบรายการที่เลือก',
     });
@@ -155,7 +155,7 @@ export default function SettingsPage() {
         if (success) deletedCount++;
       }
       setDeptSelectedIds([]);
-      showToast(`ลบหน่วยงานเรียบร้อยแล้ว ${deletedCount} รายการ`);
+      showToast(`ลบแผนกเรียบร้อยแล้ว ${deletedCount} รายการ`);
     }
   };
 
@@ -348,7 +348,7 @@ export default function SettingsPage() {
     const ok = await confirmDialog({
       title: 'ยืนยันการล้างข้อมูลทั้งหมด (รีเซ็ตระบบ)',
       message:
-        'คำเตือน: ข้อมูลทรัพย์สิน หมวดหมู่ หน่วยงาน บุคลากร และประวัติทั้งหมดในเครื่องนี้จะถูกล้างออกและรีเซ็ตเริ่มต้นใหม่ทั้งหมด คุณแน่ใจหรือไม่?',
+        'คำเตือน: ข้อมูลทรัพย์สิน หมวดหมู่ แผนก บุคลากร และประวัติทั้งหมดในเครื่องนี้จะถูกล้างออกและรีเซ็ตเริ่มต้นใหม่ทั้งหมด คุณแน่ใจหรือไม่?',
       type: 'danger',
       confirmText: 'ยืนยันล้างข้อมูลทั้งหมด',
     });
@@ -442,8 +442,8 @@ export default function SettingsPage() {
           <div className="card">
             <div className="card-head">
               <div>
-                <h3>หน่วยงาน / ฝ่าย</h3>
-                <span className="hint">ทั้งหมด {db.departments.length} หน่วยงาน</span>
+                <h3>แผนก</h3>
+                <span className="hint">ทั้งหมด {db.departments.length} แผนก</span>
               </div>
               <button
                 className="btn btn-primary btn-sm"
@@ -452,7 +452,7 @@ export default function SettingsPage() {
                   setIsDeptModalOpen(true);
                 }}
               >
-                <Icons.plus size={14} /> เพิ่มหน่วยงาน
+                <Icons.plus size={14} /> เพิ่มแผนก
               </button>
             </div>
 
@@ -462,7 +462,7 @@ export default function SettingsPage() {
                   <Icons.search size={14} />
                   <input
                     type="text"
-                    placeholder="ค้นหาชื่อหน่วยงาน..."
+                    placeholder="ค้นหาชื่อแผนก..."
                     value={deptSearch}
                     onChange={(e) => {
                       setDeptSearch(e.target.value);
@@ -490,15 +490,15 @@ export default function SettingsPage() {
                         />
                       </label>
                     </th>
-                    <th>ชื่อหน่วยงาน</th>
-                    <th style={{ width: 140 }}>ทรัพย์สินที่สังกัด</th>
+                    <th>ชื่อแผนก</th>
+                    <th style={{ width: 140 }}>จำนวนบุคลากร</th>
                     <th className="th-right" style={{ width: 80 }}>จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedDepts.length > 0 ? (
                     pagedDepts.map((d) => {
-                      const count = db.assets.filter((a) => a.departmentId === d.id).length;
+                      const count = db.employees.filter((e) => e.department === d.id || e.department === d.name).length;
                       const isSelected = deptSelectedIds.includes(d.id);
                       return (
                         <tr key={d.id} className={isSelected ? 'selected-row' : ''}>
@@ -514,13 +514,13 @@ export default function SettingsPage() {
                           </td>
                           <td style={{ fontWeight: 600, color: 'var(--ink-900)' }}>{d.name}</td>
                           <td>
-                            <span className="badge-count">{count} รายการ</span>
+                            <span className="badge-count">{count} คน</span>
                           </td>
                           <td>
                             <div className="row-actions">
                               <button
                                 className="icon-btn danger"
-                                title="ลบหน่วยงาน"
+                                title="ลบแผนก"
                                 onClick={() => handleDeleteSingleDept(d.id, d.name)}
                               >
                                 <Icons.trash size={14} />
@@ -534,8 +534,8 @@ export default function SettingsPage() {
                     <tr>
                       <td colSpan={4}>
                         <div className="empty-state" style={{ padding: '36px 10px' }}>
-                          <div className="et">ไม่พบหน่วยงาน</div>
-                          <div>กดปุ่ม "เพิ่มหน่วยงาน" เพื่อเพิ่มข้อมูล</div>
+                          <div className="et">ไม่พบแผนก</div>
+                          <div>กดปุ่ม "เพิ่มแผนก" เพื่อเพิ่มข้อมูล</div>
                         </div>
                       </td>
                     </tr>
@@ -606,7 +606,7 @@ export default function SettingsPage() {
                     <th>ชื่อ / รหัสพนักงาน</th>
                     <th>สิทธิ์</th>
                     <th>ตำแหน่ง</th>
-                    <th>หน่วยงาน</th>
+                    <th>แผนก</th>
                     <th className="th-right" style={{ width: 80 }}>จัดการ</th>
                   </tr>
                 </thead>
@@ -730,7 +730,7 @@ export default function SettingsPage() {
                   <div style={{ fontWeight: 700, color: 'var(--navy-800)', fontSize: 18 }}>{db.assets.length} <span style={{ fontSize: 12, fontWeight: 400 }}>รายการ</span></div>
                 </div>
                 <div style={{ background: 'var(--paper-alt)', padding: '12px 14px', borderRadius: 'var(--radius-s)', border: '1px solid var(--line)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 2 }}>หมวดหมู่และหน่วยงาน</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 2 }}>หมวดหมู่และแผนก</div>
                   <div style={{ fontWeight: 700, color: 'var(--navy-800)', fontSize: 18 }}>{db.categories.length} / {db.departments.length}</div>
                 </div>
                 <div style={{ background: 'var(--paper-alt)', padding: '12px 14px', borderRadius: 'var(--radius-s)', border: '1px solid var(--line)' }}>
@@ -807,7 +807,7 @@ export default function SettingsPage() {
             </div>
             <div className="card-pad">
               <p style={{ fontSize: 13, color: 'var(--ink-700)', marginTop: 0 }}>
-                การล้างข้อมูลจะทำการลบข้อมูลทรัพย์สิน, ประวัติการเบิก-ยืม, ประวัติซ่อมบำรุง, หมวดหมู่, และหน่วยงานทั้งหมด
+                การล้างข้อมูลจะทำการลบข้อมูลทรัพย์สิน, ประวัติการเบิก-ยืม, ประวัติซ่อมบำรุง, หมวดหมู่, และแผนกทั้งหมด
                 และคืนค่าระบบให้เป็นฐานข้อมูลเริ่มต้น (กรุณาสำรองข้อมูลก่อนทำรายการ)
               </p>
 
@@ -825,11 +825,11 @@ export default function SettingsPage() {
       {/* Centered Floating Batch Bar for Departments & Employees */}
       <FloatingBatchBar
         selectedCount={deptSelectedIds.length}
-        itemLabel="หน่วยงาน"
+        itemLabel="แผนก"
         onClearSelection={() => setDeptSelectedIds([])}
         actions={[
           {
-            label: 'ลบหน่วยงานที่เลือก',
+            label: 'ลบแผนกที่เลือก',
             variant: 'danger',
             icon: <Icons.trash size={14} />,
             onClick: handleBatchDeleteDept,
@@ -855,18 +855,18 @@ export default function SettingsPage() {
       <Modal
         isOpen={isDeptModalOpen}
         onClose={() => setIsDeptModalOpen(false)}
-        title="เพิ่มหน่วยงานใหม่"
+        title="เพิ่มแผนกใหม่"
       >
         <form onSubmit={handleDeptSubmit}>
           <div className="modal-body">
             <div className="field full">
               <label>
-                ชื่อหน่วยงาน <span className="req">*</span>
+                ชื่อแผนก <span className="req">*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="เช่น ฝ่ายเทคโนโลยีสารสนเทศ, ฝ่ายบริหารงานทั่วไป"
+                placeholder="เช่น แผนกไอที, แผนกบัญชี, แผนกจัดซื้อ"
                 value={deptName}
                 onChange={(e) => setDeptName(e.target.value)}
               />
@@ -946,11 +946,11 @@ export default function SettingsPage() {
               </div>
 
                <div className="field">
-                 <label>หน่วยงาน / ฝ่าย</label>
+                 <label>แผนก</label>
                  <CustomSelect
-                   placeholder="-- ไม่ระบุ --"
+                   placeholder="-- เลือกแผนก --"
                    options={[
-                     { value: '', label: '-- ไม่ระบุ --' },
+                     { value: '', label: '-- ไม่ระบุแผนก --' },
                      ...db.departments.map((d) => ({
                        value: d.id,
                        label: d.name,

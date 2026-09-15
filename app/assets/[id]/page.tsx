@@ -201,7 +201,6 @@ export default function AssetDetailPage() {
       location: editForm.location.trim(),
       serial: editForm.serial.trim(),
       note: editForm.note.trim(),
-      departmentId: editForm.departmentId,
     });
     setIsEditOpen(false);
   };
@@ -306,10 +305,6 @@ export default function AssetDetailPage() {
             <div className="kv-item">
               <div className="k">หมวดหมู่</div>
               <div className="v">{category ? `${category.name} (${category.code})` : '-'}</div>
-            </div>
-            <div className="kv-item">
-              <div className="k">หน่วยงาน</div>
-              <div className="v">{department?.name || '-'}</div>
             </div>
             <div className="kv-item">
               <div className="k">ผู้ถือครอง</div>
@@ -417,23 +412,6 @@ export default function AssetDetailPage() {
                   value={editForm.categoryId}
                   onChange={(val) => setEditForm({ ...editForm, categoryId: val })}
                   placeholder="-- เลือกหมวดหมู่ --"
-                />
-              </div>
-
-              <div className="field">
-                <label>หน่วยงาน</label>
-                <CustomSelect
-                  fullWidth
-                  options={[
-                    { value: '', label: '-- ไม่ระบุหน่วยงาน --' },
-                    ...db.departments.map((d) => ({
-                      value: d.id,
-                      label: d.name,
-                    })),
-                  ]}
-                  value={editForm.departmentId}
-                  onChange={(val) => setEditForm({ ...editForm, departmentId: val })}
-                  placeholder="-- เลือกหน่วยงาน --"
                 />
               </div>
 

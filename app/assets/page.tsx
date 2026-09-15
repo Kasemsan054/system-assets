@@ -36,7 +36,6 @@ function AssetsList() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState(initialCategory);
   const [filterStatus, setFilterStatus] = useState<AssetStatus | ''>('');
-  const [filterDept, setFilterDept] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date_desc');
 
   // Pagination state
@@ -64,7 +63,6 @@ function AssetsList() {
     location: '',
     serial: '',
     note: '',
-    departmentId: '',
   });
 
   useEffect(() => {
@@ -77,7 +75,7 @@ function AssetsList() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterCategory, filterStatus, filterDept, sortBy, pageSize]);
+  }, [search, filterCategory, filterStatus, sortBy, pageSize]);
 
   // Filtered and sorted assets
   const filteredAssets = useMemo(() => {
@@ -91,7 +89,6 @@ function AssetsList() {
       }
       if (filterCategory && a.categoryId !== filterCategory) return false;
       if (filterStatus && a.status !== filterStatus) return false;
-      if (filterDept && a.departmentId !== filterDept) return false;
       return true;
     });
 
@@ -112,7 +109,7 @@ function AssetsList() {
     });
 
     return list;
-  }, [db.assets, search, filterCategory, filterStatus, filterDept, sortBy, holderDisplayName]);
+  }, [db.assets, search, filterCategory, filterStatus, sortBy, holderDisplayName]);
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredAssets.length / pageSize));
@@ -164,7 +161,6 @@ function AssetsList() {
       const rows = exportItems.map((a) => ({
         'ชื่อทรัพย์สิน': a.name,
         'หมวดหมู่': getCategory(a.categoryId)?.name || '',
-        'หน่วยงาน': getDepartment(a.departmentId)?.name || '',
         'ผู้ถือครอง': holderDisplayName(a) || '',
         'สถานะ': STATUS_LABELS[a.status]?.label || a.status,
         'วันที่เบิกใช้งาน': a.purchaseDate || '',
@@ -196,7 +192,6 @@ function AssetsList() {
       location: '',
       serial: '',
       note: '',
-      departmentId: db.departments[0]?.id || '',
     });
     setIsFormOpen(true);
   };
@@ -213,7 +208,6 @@ function AssetsList() {
       location: asset.location || '',
       serial: asset.serial || '',
       note: asset.note || '',
-      departmentId: asset.departmentId || '',
     });
     setIsFormOpen(true);
   };
@@ -234,7 +228,6 @@ function AssetsList() {
         serial: formData.serial.trim(),
         cost: 0,
         note: formData.note.trim(),
-        departmentId: formData.departmentId,
       });
     } else {
       addAsset({
@@ -248,7 +241,6 @@ function AssetsList() {
         serial: formData.serial.trim(),
         cost: 0,
         note: formData.note.trim(),
-        departmentId: formData.departmentId,
         usefulLife: getCategory(formData.categoryId)?.usefulLife || 5,
         salvagePct: 5,
         holderId: null,
@@ -262,7 +254,6 @@ function AssetsList() {
       const rows = filteredAssets.map((a) => ({
         'ชื่อทรัพย์สิน': a.name,
         'หมวดหมู่': getCategory(a.categoryId)?.name || '',
-        'หน่วยงาน': getDepartment(a.departmentId)?.name || '',
         'ผู้ถือครอง': holderDisplayName(a) || '',
         'สถานะ': STATUS_LABELS[a.status]?.label || a.status,
         'วันที่จัดซื้อ': a.purchaseDate || '',
@@ -297,11 +288,6 @@ function AssetsList() {
       value: st,
       label: STATUS_LABELS[st].label,
     })),
-  ];
-
-  const deptOptions = [
-    { value: '', label: 'ทุกหน่วยงาน' },
-    ...db.departments.map((d) => ({ value: d.id, label: d.name })),
   ];
 
   const sortOptions = [
@@ -344,14 +330,6 @@ function AssetsList() {
           options={statusOptions}
           value={filterStatus}
           onChange={(val) => setFilterStatus(val as any)}
-        />
-
-        {/* Custom Department Select */}
-        <CustomSelect
-          minWidth={160}
-          options={deptOptions}
-          value={filterDept}
-          onChange={(val) => setFilterDept(val)}
         />
 
         {/* Custom Sort Select */}
@@ -588,23 +566,6 @@ function AssetsList() {
               </div>
 
               <div className="field">
-                <label>หน่วยงาน</label>
-                <CustomSelect
-                  fullWidth
-                  options={[
-                    { value: '', label: '-- ไม่ระบุหน่วยงาน --' },
-                    ...db.departments.map((d) => ({
-                      value: d.id,
-                      label: d.name,
-                    })),
-                  ]}
-                  value={formData.departmentId}
-                  onChange={(val) => setFormData({ ...formData, departmentId: val })}
-                  placeholder="-- เลือกหน่วยงาน --"
-                />
-              </div>
-
-              <div className="field">
                 <label>สถานะ</label>
                 <CustomSelect
                   fullWidth
@@ -642,29 +603,12 @@ function AssetsList() {
 
               <div className="field">
                 <label>ผู้ถือครองปัจจุบัน</label>
-                {db.employees.length > 0 ? (
-                  <CustomSelect
-                    fullWidth
-                    options={[
-                      { value: '', label: '-- ไม่ระบุผู้ถือครอง --' },
-                      ...db.employees.map((emp) => ({
-                        value: emp.name,
-                        label: emp.name,
-                        sublabel: getDepartment(emp.department)?.name,
-                      })),
-                    ]}
-                    value={formData.holderName}
-                    onChange={(val) => setFormData({ ...formData, holderName: val })}
-                    placeholder="เลือกจากบุคลากร"
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    placeholder="พิมพ์ชื่อผู้ถือครอง"
-                    value={formData.holderName}
-                    onChange={(e) => setFormData({ ...formData, holderName: e.target.value })}
-                  />
-                )}
+                <input
+                  type="text"
+                  placeholder="ระบุชื่อผู้ถือครอง (ถ้ามี)"
+                  value={formData.holderName}
+                  onChange={(e) => setFormData({ ...formData, holderName: e.target.value })}
+                />
               </div>
 
               <div className="field">
@@ -677,7 +621,7 @@ function AssetsList() {
                 />
               </div>
 
-              <div className="field">
+              <div className="field full">
                 <label>หมายเลขเครื่อง / Serial</label>
                 <input
                   type="text"
