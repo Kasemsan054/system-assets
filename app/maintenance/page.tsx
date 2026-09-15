@@ -7,6 +7,7 @@ import { useApp } from '@/context/AppContext';
 import { Icons } from '@/components/Icons';
 import { Modal } from '@/components/Modal';
 import { CustomSelect } from '@/components/CustomSelect';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import { Pagination } from '@/components/Pagination';
 import { FloatingBatchBar } from '@/components/FloatingBatchBar';
 import { fmtDate } from '@/lib/utils';
@@ -477,11 +478,11 @@ export default function MaintenancePage() {
                 <label>
                   วันที่แจ้ง <span className="req">*</span>
                 </label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   required
                   value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  onChange={(val) => setForm({ ...form, date: val })}
+                  fullWidth
                 />
               </div>
 
@@ -533,11 +534,11 @@ export default function MaintenancePage() {
               <label>
                 วันที่ซ่อมเสร็จสิ้น <span className="req">*</span>
               </label>
-              <input
-                type="date"
+              <CustomDatePicker
                 required
                 value={completedDate}
-                onChange={(e) => setCompletedDate(e.target.value)}
+                onChange={(val) => setCompletedDate(val)}
+                fullWidth
               />
             </div>
           </div>

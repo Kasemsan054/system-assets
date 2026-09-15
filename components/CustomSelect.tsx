@@ -38,6 +38,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dropDirection, setDropDirection] = useState<'down' | 'up'>('down');
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,6 +54,19 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         (o.sublabel && o.sublabel.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     : options;
+
+  // Check placement when opening: default down; flip up if space below is too tight and more space above
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 230 && rect.top > spaceBelow) {
+        setDropDirection('up');
+      } else {
+        setDropDirection('down');
+      }
+    }
+  }, [isOpen]);
 
   // Click outside to close
   useEffect(() => {
@@ -82,8 +96,11 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`custom-select-wrap ${fullWidth ? 'full-width' : ''} ${className}`}
-      style={{ minWidth: minWidth || (fullWidth ? '100%' : 160) }}
+      className={`custom-select-wrap ${fullWidth ? 'full-width' : ''} ${isOpen ? 'is-open' : ''} ${className}`}
+      style={{
+        minWidth: minWidth || (fullWidth ? '100%' : 160),
+        zIndex: isOpen ? 9999 : undefined,
+      }}
     >
       <button
         type="button"
@@ -108,7 +125,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       </button>
 
       {isOpen && (
-        <div className="custom-select-dropdown">
+        <div className={`custom-select-dropdown ${dropDirection === 'up' ? 'open-up' : ''}`}>
           {isSearchable && (
             <div className="dropdown-search-box">
               <Icons.search size={14} />

@@ -87,7 +87,7 @@ interface AppContextType {
 
   // Actions
   addAsset: (asset: Omit<Asset, 'id'>) => string;
-  updateAsset: (id: string, updates: Partial<Asset>) => void;
+  updateAsset: (id: string, updates: Partial<Asset>, silent?: boolean) => void;
   deleteAsset: (id: string) => void;
 
   addCategory: (category: Omit<Category, 'id'>) => string;
@@ -176,9 +176,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setCurrentUser(loadedDb.employees[0] || defaultAdmin);
         }
       } else {
-        const adminUser = loadedDb.employees.find((e) => e.role === 'admin') || loadedDb.employees[0] || defaultAdmin;
-        setCurrentUser(adminUser);
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(adminUser));
+        setCurrentUser(null);
       }
     } catch (e) {
       console.error('Error loading DB from localStorage', e);
@@ -287,6 +285,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         console.error(e);
       }
     }
+
+    fetch('/api/employees', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: userId, password: newPass, mustChangePassword: false }),
+    }).catch((err) => console.warn('D1 sync error:', err));
   };
 
   // Toast method
@@ -359,7 +363,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return newId;
   };
 
-  const updateAsset = (id: string, updates: Partial<Asset>) => {
+  const updateAsset = (id: string, updates: Partial<Asset>, silent = false) => {
     const nextAssets = db.assets.map((a) => (a.id === id ? { ...a, ...updates } : a));
     saveDatabase({ ...db, assets: nextAssets });
     fetch(`/api/assets/${id}`, {
@@ -367,7 +371,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     }).catch((err) => console.warn('D1 sync error:', err));
-    showToast('บันทึกการแก้ไขเรียบร้อยแล้ว');
+    if (!silent) showToast('บันทึกการแก้ไขเรียบร้อยแล้ว');
   };
 
   const deleteAsset = (id: string) => {

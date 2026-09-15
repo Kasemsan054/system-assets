@@ -112,8 +112,9 @@ function createCloudflareRemoteDb(
 
 // ── Local SQLite fallback (Node.js only) ─────────────────────────────────────
 function createLocalSqliteDb(): D1Database {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { DatabaseSync } = require('node:sqlite');
+  // ใช้ eval เพื่อซ่อน require จาก Next.js Turbopack ป้องกัน Error Unsupported external type
+  // eslint-disable-next-line no-eval
+  const { DatabaseSync } = eval(`require('node:sqlite')`);
   const dbDir = path.join(process.cwd(), 'd1');
   if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
@@ -180,7 +181,8 @@ export function getDb(envBinding?: D1Database): D1Database {
   const databaseId = process.env.CLOUDFLARE_DATABASE_ID || '9b5674d3-c3ae-4121-bfc4-fd5c928a39ad';
   const token = getWranglerToken();
 
-  if (token) {
+  // ข้ามการต่อ Cloudflare D1 หากอยู่ในโหมดพัฒนา (กันปัญหา Token หมดอายุ)
+  if (token && process.env.NODE_ENV === 'production') {
     return createCloudflareRemoteDb(accountId, databaseId, token);
   }
 

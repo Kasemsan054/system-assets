@@ -7,6 +7,7 @@ import { useApp } from '@/context/AppContext';
 import { Icons } from '@/components/Icons';
 import { Modal } from '@/components/Modal';
 import { CustomSelect } from '@/components/CustomSelect';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import { Pagination } from '@/components/Pagination';
 import { FloatingBatchBar } from '@/components/FloatingBatchBar';
 import { fmtDate } from '@/lib/utils';
@@ -517,11 +518,11 @@ export default function AssignmentsPage() {
                 <label>
                   วันที่มอบหมาย <span className="req">*</span>
                 </label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   required
                   value={assignForm.dateOut}
-                  onChange={(e) => setAssignForm({ ...assignForm, dateOut: e.target.value })}
+                  onChange={(val) => setAssignForm({ ...assignForm, dateOut: val })}
+                  fullWidth
                 />
               </div>
 
@@ -563,13 +564,13 @@ export default function AssignmentsPage() {
               <label>
                 วันที่รับคืน <span className="req">*</span>
               </label>
-              <input
-                type="date"
+              <CustomDatePicker
                 required
                 value={returnForm.dateReturn}
-                onChange={(e) =>
-                  setReturnForm({ ...returnForm, dateReturn: e.target.value })
+                onChange={(val) =>
+                  setReturnForm({ ...returnForm, dateReturn: val })
                 }
+                fullWidth
               />
             </div>
             <div className="field full" style={{ marginTop: 12 }}>

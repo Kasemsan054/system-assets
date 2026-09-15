@@ -7,6 +7,7 @@ import { useApp } from '@/context/AppContext';
 import { Icons } from '@/components/Icons';
 import { Modal } from '@/components/Modal';
 import { CustomSelect } from '@/components/CustomSelect';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import { fmtDate } from '@/lib/utils';
 import { STATUS_LABELS, AssetStatus } from '@/types';
 
@@ -453,20 +454,20 @@ export default function AssetDetailPage() {
                 <label>
                   วันที่เบิกใช้งาน <span className="req">*</span>
                 </label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   required
                   value={editForm.purchaseDate}
-                  onChange={(e) => setEditForm({ ...editForm, purchaseDate: e.target.value })}
+                  onChange={(val) => setEditForm({ ...editForm, purchaseDate: val })}
+                  fullWidth
                 />
               </div>
 
               <div className="field">
                 <label>วันที่นำกลับมาคืน</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={editForm.returnDate}
-                  onChange={(e) => setEditForm({ ...editForm, returnDate: e.target.value })}
+                  onChange={(val) => setEditForm({ ...editForm, returnDate: val })}
+                  fullWidth
                 />
               </div>
 
@@ -583,11 +584,11 @@ export default function AssetDetailPage() {
                 <label>
                   วันที่มอบหมาย <span className="req">*</span>
                 </label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   required
                   value={assignForm.dateOut}
-                  onChange={(e) => setAssignForm({ ...assignForm, dateOut: e.target.value })}
+                  onChange={(val) => setAssignForm({ ...assignForm, dateOut: val })}
+                  fullWidth
                 />
               </div>
 
@@ -629,13 +630,13 @@ export default function AssetDetailPage() {
               <label>
                 วันที่รับคืน <span className="req">*</span>
               </label>
-              <input
-                type="date"
+              <CustomDatePicker
                 required
                 value={returnForm.dateReturn}
-                onChange={(e) =>
-                  setReturnForm({ ...returnForm, dateReturn: e.target.value })
+                onChange={(val) =>
+                  setReturnForm({ ...returnForm, dateReturn: val })
                 }
+                fullWidth
               />
             </div>
             <div className="field full" style={{ marginTop: 12 }}>
@@ -692,11 +693,11 @@ export default function AssetDetailPage() {
                 <label>
                   วันที่แจ้ง <span className="req">*</span>
                 </label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   required
                   value={maintForm.date}
-                  onChange={(e) => setMaintForm({ ...maintForm, date: e.target.value })}
+                  onChange={(val) => setMaintForm({ ...maintForm, date: val })}
+                  fullWidth
                 />
               </div>
               <div className="field full">

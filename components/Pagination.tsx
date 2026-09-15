@@ -77,9 +77,6 @@ export const Pagination: React.FC<PaginationProps> = ({
         <span>
           แสดง <b>{startIndex + 1}–{endIndex}</b> จากทั้งหมด <b>{totalItems}</b> รายการ
         </span>
-        <span className="page-badge">
-          หน้า {currentPage} / {Math.max(1, totalPages)}
-        </span>
       </div>
 
       <div className="pagination-actions">

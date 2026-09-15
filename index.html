@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบทะเบียนทรัพย์สิน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --navy-900:#5c1017;
+    --navy-850:#6c141c;
+    --navy-800:#7e1721;
+    --navy-700:#9c1f29;
+    --navy-600:#b82a33;
+    --gold-600:#a97a1f;
+    --gold-500:#c39a3d;
+    --gold-100:#f4e9d2;
+    --paper:#f5f6f8;
+    --paper-alt:#eceff3;
+    --card:#ffffff;
+    --ink-900:#1c2531;
+    --ink-700:#3a4453;
+    --ink-500:#647085;
+    --ink-300:#9aa4b2;
+    --line:#dfe4ea;
+    --line-strong:#c7cedb;
+    --green-700:#1f6d45;
+    --green-100:#e4f3ea;
+    --red-700:#a3352e;
+    --red-100:#fbe8e6;
+    --amber-700:#9a6c14;
+    --amber-100:#f8edd8;
+    --blue-700:#1f5f9a;
+    --blue-100:#e6f0f9;
+    --radius-s:3px;
+    --radius-m:5px;
+    --shadow-card:0 1px 2px rgba(11,31,58,.06), 0 1px 0 rgba(11,31,58,.04);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Sarabun',sans-serif;
+    background:var(--paper);
+    color:var(--ink-900);
+    font-size:14.5px;
+    line-height:1.55;
+  }
+  h1,h2,h3,h4{font-family:'Kanit',sans-serif;font-weight:600;margin:0;color:var(--ink-900);}
+  a{color:inherit;}
+  button{font-family:inherit;font-size:inherit;cursor:pointer;}
+  table{border-collapse:collapse;width:100%;}
+  input,select,textarea{font-family:inherit;font-size:14px;}
+
+  /* ---------- App shell ---------- */
+  #app{display:flex;min-height:100vh;}
+
+  .sidebar{
+    width:238px;
+    flex-shrink:0;
+    background:linear-gradient(180deg,var(--navy-900) 0%, var(--navy-850) 100%);
+    color:#e7ecf3;
+    display:flex;
+    flex-direction:column;
+    position:fixed;
+    top:0;left:0;bottom:0;
+    z-index:40;
+    transition:transform .2s ease;
+  }
+  .sidebar-brand{
+    padding:22px 20px 18px;
+    border-bottom:1px solid rgba(255,255,255,.1);
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .brand-mark{
+    width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(135deg,var(--gold-500),var(--gold-600));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Kanit',sans-serif;font-weight:700;color:var(--ink-900);
+    font-size:15px;flex-shrink:0;
+    border:2px solid rgba(255,255,255,.35);
+  }
+  .brand-text .brand-org{font-family:'Kanit',sans-serif;font-size:14.5px;font-weight:600;color:#fff;line-height:1.3;}
+  .brand-text .brand-sub{font-size:11.5px;color:var(--gold-100);letter-spacing:.02em;}
+
+  .sidebar-nav{padding:14px 10px;flex:1;overflow-y:auto;}
+  .nav-item{
+    display:flex;align-items:center;gap:11px;
+    padding:10px 12px;margin-bottom:2px;
+    border-radius:var(--radius-m);
+    color:#c7d2e2;
+    text-decoration:none;
+    font-size:14px;
+    border-left:3px solid transparent;
+    cursor:pointer;
+  }
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:.85;}
+  .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav-item.active{
+    background:rgba(195,154,61,.16);
+    border-left:3px solid var(--gold-500);
+    color:#fff;
+    font-weight:600;
+  }
+  .nav-section-label{
+    font-size:10.5px;letter-spacing:.06em;color:var(--ink-300);
+    padding:14px 12px 6px;
+  }
+  .sidebar-foot{
+    padding:14px 18px 18px;border-top:1px solid rgba(255,255,255,.1);
+    font-size:11.5px;color:#9fb0c9;
+  }
+
+  .main-col{margin-left:238px;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh;}
+
+  .topbar{
+    background:var(--card);
+    border-bottom:1px solid var(--line);
+    padding:14px 26px;
+    display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:30;
+    gap:16px;
+  }
+  .topbar-left{display:flex;align-items:center;gap:14px;min-width:0;}
+  .hamburger{display:none;background:none;border:1px solid var(--line);border-radius:var(--radius-s);padding:7px 9px;}
+  .breadcrumb{font-size:12.5px;color:var(--ink-500);}
+  .breadcrumb b{color:var(--ink-900);}
+  .page-title{font-size:19px;margin-top:2px;}
+  .topbar-right{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+  .today-pill{
+    font-size:12px;color:var(--ink-500);
+    border:1px solid var(--line);border-radius:20px;padding:6px 12px;
+    background:var(--paper-alt);white-space:nowrap;
+  }
+  .user-chip{display:flex;align-items:center;gap:8px;}
+  .user-avatar{
+    width:32px;height:32px;border-radius:50%;background:var(--navy-800);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;
+    font-family:'Kanit',sans-serif;
+  }
+  .user-name{font-size:12.5px;line-height:1.3;}
+  .user-name b{display:block;font-size:13px;color:var(--ink-900);}
+
+  .content{padding:22px 26px 60px;flex:1;}
+  .letterhead-rule{height:3px;background:linear-gradient(90deg,var(--gold-600),var(--gold-500) 40%, transparent 100%);margin:10px 0 20px;border-radius:2px;}
+
+  /* ---------- Cards / KPI ---------- */
+  .grid{display:grid;gap:16px;}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:2fr 1fr;}
+  @media(max-width:1050px){.grid-4{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}}
+  @media(max-width:620px){.grid-4,.grid-3{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius-m);
+    box-shadow:var(--shadow-card);
+  }
+  .card-pad{padding:18px 20px;}
+  .card-head{
+    padding:15px 20px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  }
+  .card-head h3{font-size:15px;}
+  .card-head .hint{font-size:12px;color:var(--ink-500);font-weight:400;font-family:'Sarabun',sans-serif;}
+
+  .kpi-card{padding:18px 20px;position:relative;overflow:hidden;}
+  .kpi-label{font-size:12.5px;color:var(--ink-500);margin-bottom:8px;}
+  .kpi-value{font-family:'Kanit',sans-serif;font-size:26px;font-weight:600;color:var(--ink-900);}
+  .kpi-sub{font-size:11.5px;margin-top:6px;color:var(--ink-500);}
+  .kpi-bar{position:absolute;left:0;top:0;bottom:0;width:4px;}
+
+  /* status colors */
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 9px;border-radius:20px;font-weight:600;white-space:nowrap;}
+  .tag-dot{width:6px;height:6px;border-radius:50%;}
+  .tag-active{background:var(--green-100);color:var(--green-700);}
+  .tag-active .tag-dot{background:var(--green-700);}
+  .tag-maintenance{background:var(--amber-100);color:var(--amber-700);}
+  .tag-maintenance .tag-dot{background:var(--amber-700);}
+  .tag-idle{background:var(--blue-100);color:var(--blue-700);}
+  .tag-idle .tag-dot{background:var(--blue-700);}
+  .tag-disposed{background:#eceff3;color:var(--ink-500);}
+  .tag-disposed .tag-dot{background:var(--ink-500);}
+  .tag-lost{background:var(--red-100);color:var(--red-700);}
+  .tag-lost .tag-dot{background:var(--red-700);}
+  .tag-borrowed{background:#ede4f8;color:#6b3fa0;}
+  .tag-borrowed .tag-dot{background:#6b3fa0;}
+
+  /* ---------- Charts (pure CSS) ---------- */
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .bar-row .bar-label{width:150px;flex-shrink:0;font-size:12.5px;color:var(--ink-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar-track{flex:1;background:var(--paper-alt);border-radius:20px;height:10px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--navy-700),var(--navy-600));}
+  .bar-count{width:34px;text-align:right;font-size:12.5px;font-weight:600;color:var(--ink-900);flex-shrink:0;}
+
+  .donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+  .donut{width:132px;height:132px;border-radius:50%;flex-shrink:0;}
+  .donut-center{width:132px;height:132px;border-radius:50%;position:relative;}
+  .donut-hole{
+    position:absolute;inset:20px;background:var(--card);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+  }
+  .donut-hole .n{font-family:'Kanit',sans-serif;font-size:20px;font-weight:600;color:var(--ink-900);}
+  .donut-hole .l{font-size:10.5px;color:var(--ink-500);}
+  .legend{display:flex;flex-direction:column;gap:8px;}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-700);}
+  .legend-sw{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+  /* ---------- Tables ---------- */
+  .table-toolbar{padding:14px 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);}
+  .search-box{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:var(--radius-s);
+    padding:8px 12px;background:var(--paper);min-width:220px;flex:1;max-width:340px;
+  }
+  .search-box svg{width:15px;height:15px;color:var(--ink-500);flex-shrink:0;}
+  .search-box input{border:none;background:none;outline:none;width:100%;color:var(--ink-900);}
+  select.filter-select, .field input, .field select, .field textarea{
+    border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px;background:#fff;color:var(--ink-900);outline:none;
+  }
+  select.filter-select{background:var(--paper);}
+  .field input:focus,.field select:focus,.field textarea:focus,select.filter-select:focus{border-color:var(--navy-600);}
+
+  .data-table{width:100%;}
+  .data-table thead th{
+    text-align:left;font-size:11.5px;letter-spacing:.03em;color:var(--ink-500);
+    background:var(--paper-alt);padding:10px 14px;border-bottom:1px solid var(--line-strong);
+    white-space:nowrap;font-weight:600;
+  }
+  .data-table tbody td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle;}
+  .data-table tbody tr:hover{background:#fbfbfc;}
+  .data-table tbody tr:last-child td{border-bottom:none;}
+  .asset-code{font-family:'Kanit',sans-serif;font-size:12.5px;color:var(--ink-900);font-weight:600;letter-spacing:.01em;}
+  .cell-sub{font-size:11.5px;color:var(--ink-500);}
+  .row-actions{display:flex;gap:6px;justify-content:flex-end;}
+
+  .icon-btn{
+    width:29px;height:29px;border-radius:var(--radius-s);border:1px solid var(--line);background:#fff;
+    display:inline-flex;align-items:center;justify-content:center;color:var(--ink-500);
+  }
+  .icon-btn:hover{background:var(--paper-alt);color:var(--ink-900);}
+  .icon-btn svg{width:14px;height:14px;}
+  .icon-btn.danger:hover{color:var(--red-700);border-color:var(--red-700);}
+
+  .empty-state{padding:60px 20px;text-align:center;color:var(--ink-500);}
+  .empty-state svg{width:42px;height:42px;color:var(--line-strong);margin-bottom:10px;}
+  .empty-state .et{font-family:'Kanit',sans-serif;color:var(--ink-700);font-size:15px;margin-bottom:4px;}
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:9px 16px;border-radius:var(--radius-s);border:1px solid transparent;
+    font-size:13.5px;font-weight:600;white-space:nowrap;
+  }
+  .btn svg{width:14px;height:14px;}
+  .btn-primary{background:var(--navy-800);color:#fff;}
+  .btn-primary:hover{background:var(--navy-900);}
+  .btn-gold{background:var(--gold-600);color:#fff;}
+  .btn-gold:hover{background:var(--gold-700,#8f6112);}
+  .btn-outline{background:#fff;border-color:var(--line-strong);color:var(--ink-700);}
+  .btn-outline:hover{background:var(--paper-alt);}
+  .btn-danger{background:#fff;border-color:var(--red-700);color:var(--red-700);}
+  .btn-danger:hover{background:var(--red-100);}
+  .btn-sm{padding:6px 11px;font-size:12.5px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  /* ---------- Forms / Modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(11,20,36,.5);display:flex;align-items:flex-start;justify-content:center;
+    padding:40px 16px;overflow-y:auto;z-index:100;
+  }
+  .modal{
+    background:#fff;border-radius:var(--radius-m);width:100%;max-width:640px;
+    box-shadow:0 18px 50px rgba(11,20,36,.28);
+  }
+  .modal.modal-wide{max-width:820px;}
+  .modal-head{
+    padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;
+  }
+  .modal-head h3{font-size:16.5px;}
+  .modal-close{border:none;background:none;color:var(--ink-500);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  .modal-close:hover{background:var(--paper-alt);}
+  .modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto;}
+  .modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:560px){.form-grid{grid-template-columns:1fr;}}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field.full{grid-column:1/-1;}
+  .field label{font-size:12.5px;color:var(--ink-700);font-weight:600;}
+  .field .req{color:var(--red-700);}
+  .field-hint{font-size:11px;color:var(--ink-500);}
+
+  .divider-label{
+    grid-column:1/-1;font-size:11.5px;letter-spacing:.04em;color:var(--gold-600);
+    font-weight:700;padding-top:6px;border-top:1px dashed var(--line-strong);margin-top:4px;
+  }
+
+  /* ---------- Detail / timeline ---------- */
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+  .detail-title{font-size:20px;margin-bottom:6px;}
+  .kv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 22px;}
+  @media(max-width:820px){.kv-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){.kv-grid{grid-template-columns:1fr;}}
+  .kv-item .k{font-size:11.5px;color:var(--ink-500);margin-bottom:3px;}
+  .kv-item .v{font-size:14px;color:var(--ink-900);font-weight:500;}
+
+  .timeline{padding:4px 4px 4px 4px;}
+  .tl-item{display:flex;gap:14px;padding-bottom:18px;position:relative;}
+  .tl-item:last-child{padding-bottom:2px;}
+  .tl-item::before{
+    content:'';position:absolute;left:8px;top:20px;bottom:0;width:1px;background:var(--line-strong);
+  }
+  .tl-item:last-child::before{display:none;}
+  .tl-dot{width:17px;height:17px;border-radius:50%;background:var(--navy-800);flex-shrink:0;margin-top:1px;
+    display:flex;align-items:center;justify-content:center;}
+  .tl-dot svg{width:9px;height:9px;color:#fff;}
+  .tl-content .tl-title{font-size:13.5px;font-weight:600;color:var(--ink-900);}
+  .tl-content .tl-meta{font-size:12px;color:var(--ink-500);margin-top:2px;}
+
+  /* ---------- Report ---------- */
+  .report-sheet{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius-m);padding:34px 40px;
+  }
+  .report-letterhead{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid var(--navy-900);margin-bottom:18px;}
+  .report-org{font-family:'Kanit',sans-serif;font-size:16px;color:var(--ink-900);}
+  .report-org small{display:block;font-family:'Sarabun',sans-serif;font-size:11.5px;font-weight:400;color:var(--ink-500);margin-top:2px;}
+  .report-meta{text-align:right;font-size:12px;color:var(--ink-500);}
+  .report-title{text-align:center;font-size:18px;margin-bottom:4px;}
+  .report-sub{text-align:center;font-size:12.5px;color:var(--ink-500);margin-bottom:22px;}
+  .report-sign{display:flex;justify-content:flex-end;margin-top:40px;}
+  .report-sign-box{text-align:center;font-size:13px;width:220px;}
+  .sign-line{border-bottom:1px dotted var(--ink-500);height:42px;margin-bottom:6px;}
+
+  /* ---------- Misc ---------- */
+  .toolbar-right{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;}
+  .pill-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+  .pill-tab{
+    padding:7px 14px;border-radius:20px;font-size:12.5px;border:1px solid var(--line);background:#fff;color:var(--ink-700);font-weight:600;
+  }
+  .pill-tab.active{background:var(--navy-800);border-color:var(--navy-800);color:#fff;}
+
+  .toast-wrap{position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:10px;}
+  .toast{
+    background:var(--navy-900);color:#fff;padding:12px 18px;border-radius:var(--radius-s);font-size:13px;
+    box-shadow:0 8px 22px rgba(0,0,0,.2);display:flex;align-items:center;gap:9px;min-width:220px;
+    animation:toastIn .18s ease;border-left:4px solid var(--gold-500);
+  }
+  .toast.err{border-left-color:var(--red-700);}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+
+  .helper-note{
+    display:flex;gap:10px;background:var(--blue-100);border:1px solid #cfe0f0;color:var(--blue-700);
+    padding:11px 14px;border-radius:var(--radius-s);font-size:12.5px;margin-bottom:18px;align-items:flex-start;
+  }
+  .helper-note svg{width:15px;height:15px;flex-shrink:0;margin-top:1px;}
+
+  .progress-track{background:var(--paper-alt);border-radius:20px;height:7px;overflow:hidden;width:100%;}
+  .progress-fill{height:100%;border-radius:20px;}
+
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:20px;}
+
+  @media(max-width:920px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0);}
+    .main-col{margin-left:0;}
+    .hamburger{display:flex;}
+    .kv-grid{grid-template-columns:1fr 1fr;}
+  }
+
+  @media print{
+    .sidebar,.topbar,.no-print{display:none !important;}
+    .main-col{margin-left:0 !important;}
+    .content{padding:0 !important;}
+    body{background:#fff;}
+    .report-sheet{border:none;padding:0;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark" id="brandMark">อส</div>
+      <div class="brand-text">
+        <div class="brand-org" id="brandOrgName">องค์กรของคุณ</div>
+        <div class="brand-sub">ระบบทะเบียนทรัพย์สิน</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-foot">เวอร์ชัน 1.0 · ข้อมูลบันทึกในเครื่องนี้</div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburgerBtn" aria-label="เมนู">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div>
+          <div class="breadcrumb" id="breadcrumb">หน้าหลัก</div>
+          <h1 class="page-title" id="pageTitle">แดชบอร์ด</h1>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="today-pill" id="todayPill"></div>
+        <div class="user-chip">
+          <div class="user-avatar">ผจ</div>
+          <div class="user-name"><b>เจ้าหน้าที่พัสดุ</b>ผู้ดูแลระบบ</div>
+        </div>
+      </div>
+    </header>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* =========================================================================
+   ระบบจัดการทรัพย์สิน (Asset Management System)
+   Single-file SPA — vanilla JS, hash routing, in-memory + persistent storage
+   ========================================================================= */
+
+/* ---------------------------- Icons (inline svg) ---------------------------- */
+const ICONS = {
+  dashboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
+  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4"/><path d="M3 17l9 4 9-4"/></svg>',
+  category:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>',
+  assign:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  maintenance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 1 1-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 1 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg>',
+  depreciation:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 8l-5 5-3-3-4 4"/></svg>',
+  report:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>',
+  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.13.38.35.71.66 1H21a2 2 0 0 1 0 4h-.09c-.13.38-.35.71-.66 1z"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  print:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+  download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  upload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  arrowLeft:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
+  history:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  unlock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+  wrench:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 1 1-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 1 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg>',
+};
+
+/* ---------------------------- Storage layer ---------------------------- */
+const STORE_KEY = 'ams-db-v1';
+const API_URL = '/api/data';
+let DB = null;
+let memoryFallback = null;
+
+async function storageGet(){
+  // 1) Prefer Claude's own artifact storage when this file is previewed inside Claude.
+  try{
+    if(window.storage && typeof window.storage.get === 'function'){
+      const r = await window.storage.get(STORE_KEY, false);
+      return r && r.value ? JSON.parse(r.value) : null;
+    }
+  }catch(e){ /* fall through */ }
+  // 2) Real deployment with a D1 database connected via Cloudflare Pages Functions.
+  try{
+    const res = await fetch(API_URL, {cache:'no-store'});
+    if(res.ok){
+      const json = await res.json();
+      return (json && json.value) ? JSON.parse(json.value) : null;
+    }
+  }catch(e){ /* API/D1 not set up on this deployment — fall through */ }
+  // 3) Plain static hosting with no backend: use the browser's own localStorage
+  // (data stays on this device/browser only).
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return memoryFallback; }
+}
+async function storageSet(data){
+  try{
+    if(window.storage && typeof window.storage.set === 'function'){
+      await window.storage.set(STORE_KEY, JSON.stringify(data), false);
+      return;
+    }
+  }catch(e){ /* fall through */ }
+  try{
+    const res = await fetch(API_URL, {
+      method:'POST', cache:'no-store',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({value: JSON.stringify(data)}),
+    });
+    if(res.ok) return;
+  }catch(e){ /* API/D1 not set up on this deployment — fall through */ }
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+  catch(e){ memoryFallback = data; }
+}
+
+function pad(n,l){ n=String(n); while(n.length<l) n='0'+n; return n; }
+function thaiYear(dateStr){ const d = dateStr? new Date(dateStr): new Date(); return d.getFullYear()+543; }
+function fmtDate(dStr){
+  if(!dStr) return '-';
+  const d = new Date(dStr);
+  if(isNaN(d)) return '-';
+  const months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
+}
+function fmtMoney(n){
+  n = Number(n)||0;
+  return n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function uid(prefix){ return prefix+'_'+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4); }
+function escapeHtml(s){
+  if(s===undefined||s===null) return '';
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------------------- Seed data ---------------------------- */
+function seedData(){
+  const categories = [
+    {id:'cat_it', code:'IT', name:'คอมพิวเตอร์และอุปกรณ์ไอที', usefulLife:5, salvagePct:5},
+    {id:'cat_of', code:'OF', name:'ครุภัณฑ์สำนักงาน', usefulLife:5, salvagePct:5},
+    {id:'cat_fn', code:'FN', name:'เฟอร์นิเจอร์', usefulLife:8, salvagePct:5},
+    {id:'cat_vh', code:'VH', name:'ยานพาหนะ', usefulLife:8, salvagePct:10},
+    {id:'cat_mc', code:'MC', name:'เครื่องจักรและอุปกรณ์การผลิต', usefulLife:10, salvagePct:5},
+    {id:'cat_el', code:'EL', name:'เครื่องใช้ไฟฟ้า', usefulLife:5, salvagePct:5},
+  ];
+  const departments = [
+    {id:'dep_it', name:'ฝ่ายเทคโนโลยีสารสนเทศ'},
+    {id:'dep_hr', name:'ฝ่ายทรัพยากรบุคคล'},
+    {id:'dep_ac', name:'ฝ่ายบัญชีและการเงิน'},
+    {id:'dep_pc', name:'ฝ่ายจัดซื้อจัดจ้าง'},
+    {id:'dep_pd', name:'ฝ่ายผลิต'},
+    {id:'dep_ad', name:'ฝ่ายธุรการ'},
+  ];
+  const employees = [
+    {id:'emp_1', name:'สมชาย ใจดี', department:'dep_it', location:'ห้อง IT ชั้น 2'},
+    {id:'emp_2', name:'สุพรรณี รักเรียน', department:'dep_hr', location:'ฝ่ายบุคคล ชั้น 1'},
+    {id:'emp_3', name:'วิชัย ทองเจริญ', department:'dep_ac', location:'ฝ่ายบัญชี ชั้น 3'},
+    {id:'emp_4', name:'อรทัย ศรีสุข', department:'dep_pc', location:'ฝ่ายจัดซื้อ ชั้น 1'},
+    {id:'emp_5', name:'ประเสริฐ มั่นคง', department:'dep_pd', location:'โรงงานผลิต A'},
+    {id:'emp_6', name:'นภาพร แสงทอง', department:'dep_ad', location:'ฝ่ายธุรการ ชั้น 1'},
+  ];
+
+  const assets = [
+    {id:'ast_1', name:'คอมพิวเตอร์ตั้งโต๊ะ Dell OptiPlex', categoryId:'cat_it', departmentId:'dep_it', holderId:'emp_1', purchaseDate:'2024-03-12', cost:24500, usefulLife:5, salvagePct:5, status:'issued', location:'ห้อง IT ชั้น 2', vendor:'บริษัท ไอทีซัพพลาย จำกัด', serial:'DL-OP-88213', note:''},
+    {id:'ast_2', name:'โน้ตบุ๊ก Lenovo ThinkPad', categoryId:'cat_it', departmentId:'dep_ac', holderId:'emp_3', purchaseDate:'2023-11-02', cost:32900, usefulLife:5, salvagePct:5, status:'issued', location:'ฝ่ายบัญชี ชั้น 3', vendor:'บริษัท คอมพิวโซล จำกัด', serial:'LN-TP-55021', note:''},
+    {id:'ast_3', name:'เครื่องพิมพ์เลเซอร์ HP LaserJet', categoryId:'cat_it', departmentId:'dep_ad', holderId:null, purchaseDate:'2022-06-18', cost:8900, usefulLife:5, salvagePct:5, status:'repair', location:'ห้องธุรการ', vendor:'ห้างหุ้นส่วน ปริ้นท์เวิลด์', serial:'HP-LJ-33021', note:'หมึกรั่ว ส่งซ่อม'},
+    {id:'ast_4', name:'โต๊ะทำงานเหล็ก 4 ฟุต', categoryId:'cat_of', departmentId:'dep_hr', holderId:'emp_2', purchaseDate:'2021-09-05', cost:4200, usefulLife:5, salvagePct:5, status:'issued', location:'ฝ่ายบุคคล ชั้น 1', vendor:'ร้านเฟอร์นิเจอร์ออฟฟิศ', serial:'-', note:''},
+    {id:'ast_5', name:'ตู้เก็บเอกสาร 4 ลิ้นชัก', categoryId:'cat_fn', departmentId:'dep_ac', holderId:null, purchaseDate:'2020-02-14', cost:5600, usefulLife:8, salvagePct:5, status:'ready', location:'ฝ่ายบัญชี ชั้น 3', vendor:'ร้านเฟอร์นิเจอร์ออฟฟิศ', serial:'-', note:''},
+    {id:'ast_6', name:'รถกระบะ Toyota Hilux Revo', categoryId:'cat_vh', departmentId:'dep_pc', holderId:'emp_4', purchaseDate:'2019-05-20', cost:685000, usefulLife:8, salvagePct:10, status:'issued', location:'ลานจอดรถ', vendor:'โตโยต้า กรุงไทย', serial:'ทะเบียน กข-1234', note:'ตรวจสภาพประจำปี พ.ค.'},
+    {id:'ast_7', name:'เครื่องปั๊มไฮดรอลิก', categoryId:'cat_mc', departmentId:'dep_pd', holderId:'emp_5', purchaseDate:'2018-08-11', cost:145000, usefulLife:10, salvagePct:5, status:'issued', location:'โรงงานผลิต A', vendor:'บจก. เครื่องจักรไทย', serial:'HYD-2210', note:''},
+    {id:'ast_8', name:'เครื่องกำเนิดไฟฟ้าสำรอง', categoryId:'cat_mc', departmentId:'dep_pd', holderId:null, purchaseDate:'2017-01-25', cost:98000, usefulLife:10, salvagePct:5, status:'ready', location:'โรงงานผลิต B', vendor:'บจก. เพาเวอร์เจน', serial:'GEN-7741', note:'สำรองใช้กรณีฉุกเฉิน'},
+    {id:'ast_9', name:'เครื่องปรับอากาศ 18000 BTU', categoryId:'cat_el', departmentId:'dep_it', holderId:null, purchaseDate:'2023-04-09', cost:21500, usefulLife:5, salvagePct:5, status:'ready', location:'ห้อง IT ชั้น 2', vendor:'ไดกิ้นเซอร์วิส', serial:'AC-DK-9931', note:''},
+    {id:'ast_10', name:'จอมอนิเตอร์ 24 นิ้ว', categoryId:'cat_it', departmentId:'dep_hr', holderId:'emp_2', purchaseDate:'2024-07-01', cost:4900, usefulLife:5, salvagePct:5, status:'issued', location:'ฝ่ายบุคคล ชั้น 1', vendor:'บริษัท ไอทีซัพพลาย จำกัด', serial:'MN-241102', note:''},
+    {id:'ast_11', name:'เก้าอี้สำนักงานผู้บริหาร', categoryId:'cat_of', departmentId:'dep_pd', holderId:null, purchaseDate:'2016-03-01', cost:6800, usefulLife:5, salvagePct:5, status:'broken', location:'คลังพัสดุ', vendor:'ร้านเฟอร์นิเจอร์ออฟฟิศ', serial:'-', note:'จำหน่ายเนื่องจากชำรุด'},
+    {id:'ast_12', name:'รถตู้ Toyota Commuter', categoryId:'cat_vh', departmentId:'dep_ad', holderId:'emp_6', purchaseDate:'2021-10-15', cost:1450000, usefulLife:8, salvagePct:10, status:'issued', location:'ลานจอดรถ', vendor:'โตโยต้า กรุงไทย', serial:'ทะเบียน คง-5678', note:''},
+  ];
+
+  const assignments = [
+    {id:'asg_1', assetId:'ast_1', employeeId:'emp_1', departmentId:'dep_it', dateOut:'2024-03-15', dateReturn:null, note:'มอบหมายใช้งานประจำ'},
+    {id:'asg_2', assetId:'ast_2', employeeId:'emp_3', departmentId:'dep_ac', dateOut:'2023-11-05', dateReturn:null, note:''},
+    {id:'asg_3', assetId:'ast_6', employeeId:'emp_4', departmentId:'dep_pc', dateOut:'2019-05-25', dateReturn:null, note:'ใช้สำหรับติดต่อประสานงานภายนอก'},
+    {id:'asg_4', assetId:'ast_11', employeeId:'emp_5', departmentId:'dep_pd', dateOut:'2016-03-05', dateReturn:'2026-06-01', note:'คืนเนื่องจากชำรุด'},
+  ];
+
+  const maintenance = [
+    {id:'mnt_1', assetId:'ast_3', date:'2026-08-20', type:'ซ่อมแซม', vendor:'ห้างหุ้นส่วน ปริ้นท์เวิลด์', description:'หมึกรั่ว เปลี่ยนถาดรับหมึก', status:'in_progress', completedDate:null},
+    {id:'mnt_2', assetId:'ast_6', date:'2026-05-10', type:'ตรวจเช็คตามระยะ', vendor:'โตโยต้า กรุงไทย', description:'ตรวจเช็คระยะ 60,000 กม.', status:'done', completedDate:'2026-05-11'},
+    {id:'mnt_3', assetId:'ast_7', date:'2026-02-02', type:'ซ่อมบำรุงตามระยะ', vendor:'บจก. เครื่องจักรไทย', description:'เปลี่ยนซีลไฮดรอลิกและน้ำมัน', status:'done', completedDate:'2026-02-05'},
+  ];
+
+  return {
+    orgName:'องค์กรของคุณ',
+    orgSub:'สำนักงานใหญ่',
+    adminPin:'1234',
+    categories, departments, employees, assets, assignments, maintenance,
+    seq: {IT:4, OF:2, FN:1, VH:2, MC:2, EL:1},
+  };
+}
+
+/* ---------------------------- Derived helpers ---------------------------- */
+function getCategory(id){ return DB.categories.find(c=>c.id===id); }
+function getDepartment(id){ return DB.departments.find(d=>d.id===id); }
+function getEmployee(id){ return DB.employees.find(e=>e.id===id); }
+function getAsset(id){ return DB.assets.find(a=>a.id===id); }
+function holderDisplayName(asset){ return (asset.holderName && asset.holderName.trim()) || getEmployee(asset.holderId)?.name || ''; }
+
+const STATUS_LABELS = {
+  ready:{label:'พร้อมใช้', cls:'tag-active'},
+  issued:{label:'เบิกใช้แล้ว', cls:'tag-idle'},
+  borrowed:{label:'ติดยืม', cls:'tag-borrowed'},
+  repair:{label:'ส่งซ่อม', cls:'tag-maintenance'},
+  broken:{label:'เสีย', cls:'tag-lost'},
+  awaiting_parts:{label:'รออะไหล่', cls:'tag-disposed'},
+};
+function statusTag(status){
+  const s = STATUS_LABELS[status] || STATUS_LABELS.ready;
+  return `<span class="tag ${s.cls}"><span class="tag-dot"></span>${s.label}</span>`;
+}
+
+function assetHistory(assetId){
+  const items = [];
+  DB.assignments.filter(a=>a.assetId===assetId).forEach(a=>{
+    items.push({date:a.dateOut, type:'assign', text:`มอบหมายให้ ${getEmployee(a.employeeId)?.name || '-'}`, meta:getDepartment(a.departmentId)?.name || ''});
+    if(a.dateReturn){
+      items.push({date:a.dateReturn, type:'return', text:`คืนทรัพย์สินจาก ${getEmployee(a.employeeId)?.name || '-'}`, meta:a.note||''});
+    }
+  });
+  DB.maintenance.filter(m=>m.assetId===assetId).forEach(m=>{
+    items.push({date:m.date, type:'maintenance', text:`${m.type}: ${m.description}`, meta:`${m.vendor||''}`});
+    if(m.completedDate) items.push({date:m.completedDate, type:'done', text:'ซ่อมบำรุงเสร็จสิ้น', meta:m.description});
+  });
+  items.push({date:null, type:'created', text:'ขึ้นทะเบียนทรัพย์สิน', meta:`วันที่จัดซื้อ ${fmtDate(DBGetAssetPurchaseDate(assetId))}`, sortDate:getAsset(assetId)?.purchaseDate});
+  items.forEach(i=>{ if(!i.sortDate) i.sortDate = i.date; });
+  items.sort((a,b)=> new Date(a.sortDate||0) - new Date(b.sortDate||0));
+  return items;
+}
+function DBGetAssetPurchaseDate(id){ return getAsset(id)?.purchaseDate; }
+
+/* ---------------------------- Excel Import / Export ---------------------------- */
+function normalizeDateForImport(v){
+  if(v===undefined || v===null || v==='') return '';
+  if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  if(typeof v === 'number' && window.XLSX && XLSX.SSF){
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d) return `${d.y}-${pad(d.m,2)}-${pad(d.d,2)}`;
+  }
+  const s = String(v).trim();
+  const parsed = new Date(s);
+  if(!isNaN(parsed) && /\d{4}/.test(s)) return parsed.toISOString().slice(0,10);
+  return s;
+}
+
+function buildWorkbook(){
+  const wb = XLSX.utils.book_new();
+
+  const catRows = DB.categories.map(c=>({
+    'รหัสอ้างอิง':c.id, 'รหัสหมวดหมู่':c.code, 'ชื่อหมวดหมู่':c.name, 'อายุการใช้งาน(ปี)':c.usefulLife,
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(catRows), 'หมวดหมู่');
+
+  const depRows = DB.departments.map(d=>({ 'รหัสอ้างอิง':d.id, 'ชื่อหน่วยงาน':d.name }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(depRows), 'หน่วยงาน');
+
+  const empRows = DB.employees.map(e=>({
+    'รหัสอ้างอิง':e.id, 'ชื่อ-นามสกุล':e.name, 'รหัสหน่วยงาน':e.department||'',
+    'หน่วยงาน':getDepartment(e.department)?.name||'', 'สถานที่':e.location||'',
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empRows), 'บุคลากร');
+
+  const assetRows = DB.assets.map(a=>({
+    'รหัสอ้างอิง':a.id, 'ชื่อทรัพย์สิน':a.name,
+    'รหัสหมวดหมู่':a.categoryId, 'หมวดหมู่':getCategory(a.categoryId)?.name||'',
+    'รหัสหน่วยงาน':a.departmentId||'', 'หน่วยงาน':getDepartment(a.departmentId)?.name||'',
+    'รหัสผู้ถือครอง':a.holderId||'', 'ผู้ถือครอง':holderDisplayName(a),
+    'วันที่จัดซื้อ':a.purchaseDate||'', 'อายุการใช้งาน(ปี)':a.usefulLife,
+    'สถานะ':STATUS_LABELS[a.status]?.label||a.status,
+    'สถานที่จัดเก็บ':a.location||'', 'หมายเลขเครื่อง/SN':a.serial||'', 'หมายเหตุ':a.note||'',
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(assetRows), 'ทรัพย์สิน');
+
+  const asgRows = DB.assignments.map(a=>({
+    'รหัสอ้างอิง':a.id, 'รหัสทรัพย์สิน':a.assetId, 'ทรัพย์สิน':getAsset(a.assetId)?.name||'',
+    'รหัสบุคลากร':a.employeeId, 'ผู้รับมอบ':getEmployee(a.employeeId)?.name||'',
+    'รหัสหน่วยงาน':a.departmentId||'', 'หน่วยงาน':getDepartment(a.departmentId)?.name||'',
+    'วันที่มอบหมาย':a.dateOut||'', 'วันที่คืน':a.dateReturn||'', 'หมายเหตุ':a.note||'',
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(asgRows), 'การมอบหมาย');
+
+  const mntRows = DB.maintenance.map(m=>({
+    'รหัสอ้างอิง':m.id, 'รหัสทรัพย์สิน':m.assetId, 'ทรัพย์สิน':getAsset(m.assetId)?.name||'',
+    'วันที่แจ้ง':m.date||'', 'ประเภทงาน':m.type||'', 'ผู้รับซ่อม':m.vendor||'', 'รายละเอียด':m.description||'',
+    'สถานะ': m.status==='in_progress' ? 'กำลังดำเนินการ' : 'เสร็จสิ้น',
+    'วันที่เสร็จสิ้น':m.completedDate||'',
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mntRows), 'ซ่อมบำรุง');
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
+    {'ชื่อองค์กร':DB.orgName||'', 'ชื่อรอง':DB.orgSub||''}
+  ]), 'ข้อมูลองค์กร');
+
+  return wb;
+}
+
+function sheetToRows(wb, name){
+  const ws = wb.Sheets[name];
+  if(!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, {defval:''});
+}
+
+function parseWorkbook(wb){
+  const catRows = sheetToRows(wb, 'หมวดหมู่');
+  const categories = catRows.map(r=>({
+    id: String(r['รหัสอ้างอิง']||uid('cat')),
+    code: String(r['รหัสหมวดหมู่']||'').toUpperCase(),
+    name: String(r['ชื่อหมวดหมู่']||''),
+    usefulLife: Number(r['อายุการใช้งาน(ปี)'])||5,
+  })).filter(c=>c.name);
+
+  const depRows = sheetToRows(wb, 'หน่วยงาน');
+  const departments = depRows.map(r=>({
+    id: String(r['รหัสอ้างอิง']||uid('dep')),
+    name: String(r['ชื่อหน่วยงาน']||''),
+  })).filter(d=>d.name);
+
+  const empRows = sheetToRows(wb, 'บุคลากร');
+  const employees = empRows.map(r=>({
+    id: String(r['รหัสอ้างอิง']||uid('emp')),
+    name: String(r['ชื่อ-นามสกุล']||''),
+    department: String(r['รหัสหน่วยงาน']||''),
+    location: String(r['สถานที่']||''),
+  })).filter(e=>e.name);
+
+  const statusReverse = {};
+  Object.entries(STATUS_LABELS).forEach(([k,v])=>{ statusReverse[v.label] = k; });
+
+  const assetRows = sheetToRows(wb, 'ทรัพย์สิน');
+  const assets = assetRows.map(r=>({
+    id: String(r['รหัสอ้างอิง']||uid('ast')),
+    name: String(r['ชื่อทรัพย์สิน']||''),
+    categoryId: String(r['รหัสหมวดหมู่']||''),
+    departmentId: String(r['รหัสหน่วยงาน']||''),
+    holderId: r['รหัสผู้ถือครอง'] ? String(r['รหัสผู้ถือครอง']) : null,
+    holderName: r['ผู้ถือครอง'] ? String(r['ผู้ถือครอง']) : '',
+    purchaseDate: normalizeDateForImport(r['วันที่จัดซื้อ']),
+    usefulLife: Number(r['อายุการใช้งาน(ปี)'])||5,
+    status: statusReverse[String(r['สถานะ']||'').trim()] || 'ready',
+    location: String(r['สถานที่จัดเก็บ']||''),
+    serial: String(r['หมายเลขเครื่อง/SN']||''),
+    note: String(r['หมายเหตุ']||''),
+  })).filter(a=>a.name);
+
+  const asgRows = sheetToRows(wb, 'การมอบหมาย');
+  const assignments = asgRows.map(r=>({
+    id: String(r['รหัสอ้างอิง']||uid('asg')),
+    assetId: String(r['รหัสทรัพย์สิน']||''),
+    employeeId: String(r['รหัสบุคลากร']||''),
+    departmentId: String(r['รหัสหน่วยงาน']||''),
+    dateOut: normalizeDateForImport(r['วันที่มอบหมาย']),
+    dateReturn: r['วันที่คืน'] ? normalizeDateForImport(r['วันที่คืน']) : null,
+    note: String(r['หมายเหตุ']||''),
+  })).filter(a=>a.assetId);
+
+  const mntRows = sheetToRows(wb, 'ซ่อมบำรุง');
+  const maintenance = mntRows.map(r=>({
+    id: String(r['รหัสอ้างอิง']||uid('mnt')),
+    assetId: String(r['รหัสทรัพย์สิน']||''),
+    date: normalizeDateForImport(r['วันที่แจ้ง']),
+    type: String(r['ประเภทงาน']||''),
+    vendor: String(r['ผู้รับซ่อม']||''),
+    description: String(r['รายละเอียด']||''),
+    status: String(r['สถานะ']||'').trim()==='เสร็จสิ้น' ? 'done' : 'in_progress',
+    completedDate: r['วันที่เสร็จสิ้น'] ? normalizeDateForImport(r['วันที่เสร็จสิ้น']) : null,
+  })).filter(m=>m.assetId);
+
+  const orgRows = sheetToRows(wb, 'ข้อมูลองค์กร');
+  const orgName = (orgRows[0] && orgRows[0]['ชื่อองค์กร']) || 'องค์กรของคุณ';
+  const orgSub = (orgRows[0] && orgRows[0]['ชื่อรอง']) || '';
+
+  if(!categories.length && !assets.length){ throw new Error('invalid workbook'); }
+
+  return {orgName, orgSub, categories, departments, employees, assets, assignments, maintenance, seq:{}};
+}
+
+/* ---------------------------- Toast ---------------------------- */
+function toast(msg, isErr){
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast'+(isErr?' err':'');
+  el.innerHTML = `${isErr?ICONS.x:ICONS.check}<span>${escapeHtml(msg)}</span>`;
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .25s'; setTimeout(()=>el.remove(),260); }, 2600);
+}
+
+/* ---------------------------- Router / Nav ---------------------------- */
+const NAV = [
+  {hash:'#/dashboard', label:'แดชบอร์ด', icon:'dashboard'},
+  {hash:'#/assets', label:'ทะเบียนทรัพย์สิน', icon:'assets'},
+  {hash:'#/categories', label:'หมวดหมู่ทรัพย์สิน', icon:'category'},
+  {hash:'#/assignments', label:'การเบิก–ยืม/มอบหมาย', icon:'assign'},
+  {hash:'#/maintenance', label:'ซ่อมบำรุง', icon:'maintenance'},
+  {hash:'#/settings', label:'ตั้งค่าระบบ', icon:'settings'},
+];
+
+function renderSidebarNav(){
+  const current = location.hash || '#/dashboard';
+  const currentBase = '#/'+current.slice(2).split('/')[0];
+  document.getElementById('sidebarNav').innerHTML = NAV.map(n=>{
+    const active = currentBase === n.hash;
+    const isSettings = n.hash === '#/settings';
+    const lockBadge = isSettings ? `<span style="margin-left:auto;opacity:.75;width:13px;height:13px;flex-shrink:0;">${settingsUnlocked ? ICONS.unlock : ICONS.lock}</span>` : '';
+    return `<a class="nav-item ${active?'active':''}" data-hash="${n.hash}">${ICONS[n.icon]}<span>${n.label}</span>${lockBadge}</a>`;
+  }).join('');
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click', ()=>{ location.hash = el.dataset.hash; document.getElementById('sidebar').classList.remove('open'); });
+  });
+}
+
+function setHeader(breadcrumb, title){
+  document.getElementById('breadcrumb').textContent = breadcrumb;
+  document.getElementById('pageTitle').textContent = title;
+}
+
+async function router(){
+  await saveDB();
+  renderSidebarNav();
+  const hash = location.hash || '#/dashboard';
+  const parts = hash.replace('#/','').split('/');
+  const route = parts[0];
+  const param = parts[1];
+  const view = document.getElementById('view');
+
+  const routes = {
+    dashboard: ()=>renderDashboard(view),
+    assets: ()=> param ? renderAssetDetail(view, param) : renderAssetsList(view),
+    categories: ()=>renderCategories(view),
+    assignments: ()=>renderAssignments(view),
+    maintenance: ()=>renderMaintenance(view),
+    settings: ()=> settingsUnlocked ? renderSettings(view) : renderSettingsLock(view),
+  };
+  (routes[route] || routes.dashboard)();
+  window.scrollTo(0,0);
+}
+async function saveDB(){ await storageSet(DB); }
+function rerender(){ router(); }
+
+/* ---------------------------- Modal helper ---------------------------- */
+function openModal(html, opts={}){
+  closeModal();
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.id = 'activeModal';
+  bd.innerHTML = `<div class="modal ${opts.wide?'modal-wide':''}">${html}</div>`;
+  bd.addEventListener('mousedown', (e)=>{ if(e.target===bd) closeModal(); });
+  document.body.appendChild(bd);
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  const m = document.getElementById('activeModal');
+  if(m) m.remove();
+  document.body.style.overflow='';
+}
+
+/* ---------------------------- DASHBOARD ---------------------------- */
+function renderDashboard(view){
+  setHeader('หน้าหลัก', 'แดชบอร์ดภาพรวมทรัพย์สิน');
+  const assets = DB.assets;
+  const totalAssets = assets.length;
+  const readyCount = assets.filter(a=>a.status==='ready').length;
+  const issuedCount = assets.filter(a=>a.status==='issued').length;
+  const repairCount = assets.filter(a=>a.status==='repair').length;
+
+  const byCategory = DB.categories.map(c=>({
+    name:c.name, count:assets.filter(a=>a.categoryId===c.id && a.status!=='broken').length
+  })).sort((a,b)=>b.count-a.count);
+  const maxCat = Math.max(1, ...byCategory.map(c=>c.count));
+
+  const statusCounts = [
+    {key:'ready', label:'พร้อมใช้', color:'#1f6d45', count:readyCount},
+    {key:'issued', label:'เบิกใช้แล้ว', color:'#1f5f9a', count:issuedCount},
+    {key:'borrowed', label:'ติดยืม', color:'#6b3fa0', count:assets.filter(a=>a.status==='borrowed').length},
+    {key:'repair', label:'ส่งซ่อม', color:'#9a6c14', count:repairCount},
+    {key:'broken', label:'เสีย', color:'#a3352e', count:assets.filter(a=>a.status==='broken').length},
+    {key:'awaiting_parts', label:'รออะไหล่', color:'#8590a0', count:assets.filter(a=>a.status==='awaiting_parts').length},
+  ].filter(s=>s.count>0);
+  const totalForDonut = statusCounts.reduce((s,x)=>s+x.count,0) || 1;
+  let acc = 0;
+  const gradParts = statusCounts.map(s=>{
+    const start = acc/totalForDonut*360;
+    acc += s.count;
+    const end = acc/totalForDonut*360;
+    return `${s.color} ${start}deg ${end}deg`;
+  }).join(', ');
+
+  const recentActivity = [];
+  DB.assignments.slice(-4).reverse().forEach(a=>{
+    recentActivity.push({date:a.dateOut, text:`มอบหมาย “${getAsset(a.assetId)?.name||''}” ให้ ${getEmployee(a.employeeId)?.name||''}`, icon:'assign'});
+  });
+  DB.maintenance.slice(-3).reverse().forEach(m=>{
+    recentActivity.push({date:m.date, text:`แจ้งซ่อม “${getAsset(m.assetId)?.name||''}” — ${m.type}`, icon:'wrench'});
+  });
+  recentActivity.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  const dueMaintenance = DB.maintenance.filter(m=>m.status==='in_progress');
+
+  view.innerHTML = `
+    <div class="helper-note">
+      ${ICONS.info}
+      <div>ยินดีต้อนรับเข้าสู่ระบบทะเบียนทรัพย์สิน ข้อมูลทั้งหมดถูกบันทึกไว้ในเบราว์เซอร์นี้โดยอัตโนมัติ — ใช้เมนู <b>ตั้งค่าระบบ</b> เพื่อสำรอง/นำเข้าข้อมูลเป็นไฟล์ได้ทุกเมื่อ</div>
+    </div>
+
+    <div class="grid grid-3" style="margin-bottom:16px;">
+      <div class="card kpi-card"><div class="kpi-bar" style="background:var(--navy-800)"></div>
+        <div class="kpi-label">ทรัพย์สินทั้งหมด</div><div class="kpi-value">${totalAssets.toLocaleString()}</div>
+        <div class="kpi-sub">รายการที่ขึ้นทะเบียน</div></div>
+      <div class="card kpi-card"><div class="kpi-bar" style="background:var(--green-700)"></div>
+        <div class="kpi-label">พร้อมใช้</div><div class="kpi-value">${readyCount.toLocaleString()}</div>
+        <div class="kpi-sub">รายการ · เบิกใช้แล้ว ${issuedCount} รายการ</div></div>
+      <div class="card kpi-card"><div class="kpi-bar" style="background:var(--amber-700)"></div>
+        <div class="kpi-label">ส่งซ่อม</div><div class="kpi-value">${repairCount.toLocaleString()}</div>
+        <div class="kpi-sub">รายการ</div></div>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-head"><h3>จำนวนทรัพย์สินตามหมวดหมู่</h3><span class="hint">ไม่รวมรายการที่เสียแล้ว</span></div>
+        <div class="card-pad">
+          ${byCategory.map(c=>`
+            <div class="bar-row">
+              <div class="bar-label" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${c.count/maxCat*100}%"></div></div>
+              <div class="bar-count">${c.count}</div>
+            </div>`).join('') || `<div class="empty-state"><div class="et">ยังไม่มีข้อมูล</div></div>`}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>สถานะทรัพย์สิน</h3></div>
+        <div class="card-pad">
+          <div class="donut-wrap">
+            <div class="donut-center" style="background:conic-gradient(${gradParts});">
+              <div class="donut-hole"><div class="n">${totalAssets}</div><div class="l">รายการ</div></div>
+            </div>
+            <div class="legend">
+              ${statusCounts.map(s=>`<div class="legend-item"><span class="legend-sw" style="background:${s.color}"></span>${s.label} (${s.count})</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-head"><h3>กิจกรรมล่าสุด</h3></div>
+        <div class="card-pad">
+          <div class="timeline">
+            ${recentActivity.slice(0,6).map(a=>`
+              <div class="tl-item"><div class="tl-dot">${ICONS.check}</div>
+                <div class="tl-content"><div class="tl-title">${escapeHtml(a.text)}</div><div class="tl-meta">${fmtDate(a.date)}</div></div>
+              </div>`).join('') || `<div class="empty-state"><div class="et">ยังไม่มีกิจกรรม</div></div>`}
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>รายการซ่อมบำรุงที่ยังไม่เสร็จสิ้น</h3><span class="hint">${dueMaintenance.length} รายการ</span></div>
+        <div class="card-pad">
+          ${dueMaintenance.length ? dueMaintenance.map(m=>`
+            <div class="tl-item"><div class="tl-dot" style="background:var(--amber-700)">${ICONS.wrench}</div>
+              <div class="tl-content"><div class="tl-title">${escapeHtml(getAsset(m.assetId)?.name||'')}</div>
+              <div class="tl-meta">${escapeHtml(m.type)} · แจ้งเมื่อ ${fmtDate(m.date)}</div></div>
+            </div>`).join('') : `<div class="empty-state"><div class="et">ไม่มีรายการค้าง</div>ทุกรายการซ่อมบำรุงเสร็จสิ้นแล้ว</div>`}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------------------- ASSETS LIST ---------------------------- */
+let assetFilter = {q:'', category:'', status:'', department:''};
+let settingsUnlocked = false;
+
+function renderAssetsList(view){
+  setHeader('ทะเบียนทรัพย์สิน', 'ทะเบียนทรัพย์สินทั้งหมด');
+  const filtered = DB.assets.filter(a=>{
+    if(assetFilter.q){
+      const q = assetFilter.q.toLowerCase();
+      if(!(a.name.toLowerCase().includes(q) || (a.serial||'').toLowerCase().includes(q))) return false;
+    }
+    if(assetFilter.category && a.categoryId!==assetFilter.category) return false;
+    if(assetFilter.status && a.status!==assetFilter.status) return false;
+    if(assetFilter.department && a.departmentId!==assetFilter.department) return false;
+    return true;
+  });
+
+  view.innerHTML = `
+    <div class="card">
+      <div class="table-toolbar">
+        <div class="search-box">${ICONS.search}<input id="assetSearch" placeholder="ค้นหาชื่อ / รหัสครุภัณฑ์ / serial" value="${escapeHtml(assetFilter.q)}"></div>
+        <select class="filter-select" id="filterCategory">
+          <option value="">ทุกหมวดหมู่</option>
+          ${DB.categories.map(c=>`<option value="${c.id}" ${assetFilter.category===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+        </select>
+        <select class="filter-select" id="filterStatus">
+          <option value="">ทุกสถานะ</option>
+          ${Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}" ${assetFilter.status===k?'selected':''}>${v.label}</option>`).join('')}
+        </select>
+        <select class="filter-select" id="filterDept">
+          <option value="">ทุกหน่วยงาน</option>
+          ${DB.departments.map(d=>`<option value="${d.id}" ${assetFilter.department===d.id?'selected':''}>${escapeHtml(d.name)}</option>`).join('')}
+        </select>
+        <div class="toolbar-right">
+          <button class="btn btn-primary" id="btnAddAsset">${ICONS.plus}เพิ่มทรัพย์สิน</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr>
+          <th>ชื่อทรัพย์สิน</th><th>หมายเลขเครื่อง/SN</th><th>ผู้ถือครอง</th><th>สถานะ</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${filtered.map(a=>`
+            <tr>
+              <td>${escapeHtml(a.name)}<div class="cell-sub">${escapeHtml(a.location||'')}</div></td>
+              <td>${escapeHtml(a.serial||'-')}</td>
+              <td>${escapeHtml(holderDisplayName(a)||'—')}</td>
+              <td>${statusTag(a.status)}</td>
+              <td><div class="row-actions">
+                <button class="icon-btn" data-view="${a.id}" title="ดูรายละเอียด">${ICONS.eye}</button>
+                <button class="icon-btn" data-edit="${a.id}" title="แก้ไข">${ICONS.edit}</button>
+                <button class="icon-btn danger" data-del="${a.id}" title="ลบ">${ICONS.trash}</button>
+              </div></td>
+            </tr>`).join('') || `<tr><td colspan="5"><div class="empty-state">${ICONS.box}<div class="et">ไม่พบทรัพย์สินที่ตรงกับเงื่อนไข</div>ลองปรับตัวกรองหรือเพิ่มทรัพย์สินใหม่</div></td></tr>`}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('assetSearch').addEventListener('input', e=>{ assetFilter.q = e.target.value; renderAssetsList(view); });
+  document.getElementById('filterCategory').addEventListener('change', e=>{ assetFilter.category = e.target.value; renderAssetsList(view); });
+  document.getElementById('filterStatus').addEventListener('change', e=>{ assetFilter.status = e.target.value; renderAssetsList(view); });
+  document.getElementById('filterDept').addEventListener('change', e=>{ assetFilter.department = e.target.value; renderAssetsList(view); });
+  document.getElementById('btnAddAsset').addEventListener('click', ()=>openAssetForm());
+  view.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/assets/'+b.dataset.view; }));
+  view.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openAssetForm(b.dataset.edit)));
+  view.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>confirmDeleteAsset(b.dataset.del)));
+}
+
+function confirmDeleteAsset(id){
+  const asset = getAsset(id);
+  openModal(`
+    <div class="modal-head"><h3>ยืนยันการลบทรัพย์สิน</h3><button class="modal-close" id="mClose">${ICONS.x}</button></div>
+    <div class="modal-body">
+      <p>ต้องการลบ <b>${escapeHtml(asset.name)}</b> ออกจากทะเบียนหรือไม่? ประวัติการเบิก-ยืมและการซ่อมบำรุงที่เกี่ยวข้องจะถูกลบไปด้วย และไม่สามารถกู้คืนได้</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" id="mCancel">ยกเลิก</button>
+      <button class="btn btn-danger" id="mConfirm">ลบทรัพย์สิน</button>
+    </div>
+  `);
+  document.getElementById('mClose').onclick = closeModal;
+  document.getElementById('mCancel').onclick = closeModal;
+  document.getElementById('mConfirm').onclick = ()=>{
+    DB.assets = DB.assets.filter(a=>a.id!==id);
+    DB.assignments = DB.assignments.filter(a=>a.assetId!==id);
+    DB.maintenance = DB.maintenance.filter(m=>m.assetId!==id);
+    closeModal(); toast('ลบทรัพย์สินเรียบร้อยแล้ว'); rerender();
+  };
+}
+
+function openAssetForm(id){
+  const asset = id ? getAsset(id) : null;
+  const cats = DB.categories.map(c=>`<option value="${c.id}" ${asset&&asset.categoryId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
+  const currentHolderName = asset ? (asset.holderName || getEmployee(asset.holderId)?.name || '') : '';
+  const statusOpts = Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}" ${asset&&asset.status===k?'selected':(!asset&&k==='ready'?'selected':'')}>${v.label}</option>`).join('');
+
+  openModal(`
+    <div class="modal-head"><h3>${asset?'แก้ไขข้อมูลทรัพย์สิน':'เพิ่มทรัพย์สินใหม่'}</h3><button class="modal-close" id="mClose">${ICONS.x}</button></div>
+    <form id="assetForm">
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field full">
+          <label>ชื่อทรัพย์สิน <span class="req">*</span></label>
+          <input type="text" name="name" required value="${asset?escapeHtml(asset.name):''}" placeholder="เช่น คอมพิวเตอร์ตั้งโต๊ะ Dell OptiPlex">
+        </div>
+        <div class="field">
+          <label>หมวดหมู่ <span class="req">*</span></label>
+          <select name="categoryId" required>${cats}</select>
+        </div>
+        <div class="field">
+          <label>สถานะ</label>
+          <select name="status">${statusOpts}</select>
+        </div>
+        <div class="field">
+          <label>วันที่เบิกไปใช้งาน <span class="req">*</span></label>
+          <input type="date" name="purchaseDate" required value="${asset?asset.purchaseDate:new Date().toISOString().slice(0,10)}">
+        </div>
+        <div class="field">
+          <label>วันที่นำกลับมาคืน</label>
+          <input type="date" name="returnDate" value="${asset&&asset.returnDate?asset.returnDate:''}">
+        </div>
+        <div class="field">
+          <label>ผู้ถือครองปัจจุบัน</label>
+          <input type="text" name="holderName" value="${escapeHtml(currentHolderName)}" placeholder="พิมพ์ชื่อผู้ถือครอง">
+        </div>
+        <div class="field">
+          <label>สถานที่จัดเก็บ</label>
+          <input type="text" name="location" value="${asset?escapeHtml(asset.location||''):''}" placeholder="เช่น ห้อง IT ชั้น 2">
+        </div>
+        <div class="field">
+          <label>หมายเลขเครื่อง / Serial</label>
+          <input type="text" name="serial" value="${asset?escapeHtml(asset.serial||''):''}">
+        </div>
+        <div class="field full">
+          <label>หมายเหตุ</label>
+          <textarea name="note" rows="2">${asset?escapeHtml(asset.note||''):''}</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-outline" id="mCancel">ยกเลิก</button>
+      <button type="submit" class="btn btn-primary">${ICONS.check}บันทึกข้อมูล</button>
+    </div>
+    </form>
+  `, {wide:true});
+
+  document.getElementById('mClose').onclick = closeModal;
+  document.getElementById('mCancel').onclick = closeModal;
+  document.getElementById('assetForm').addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    if(asset){
+      Object.assign(asset, {
+        name:data.name, categoryId:data.categoryId, status:data.status, purchaseDate:data.purchaseDate,
+        returnDate:data.returnDate||null, holderName:data.holderName||'', location:data.location, serial:data.serial, note:data.note,
+      });
+      toast('บันทึกการแก้ไขเรียบร้อยแล้ว');
+    }else{
+      const newAsset = {
+        id:uid('ast'), name:data.name, categoryId:data.categoryId,
+        status:data.status||'ready', purchaseDate:data.purchaseDate, returnDate:data.returnDate||null, cost:0,
+        usefulLife:getCategory(data.categoryId)?.usefulLife||5, salvagePct:5,
+        departmentId:'', holderId:null, holderName:data.holderName||'', location:data.location, vendor:'', serial:data.serial, note:data.note,
+      };
+      DB.assets.push(newAsset);
+      toast('เพิ่มทรัพย์สินใหม่เรียบร้อยแล้ว');
+    }
+    closeModal(); rerender();
+  });
+}
+
+/* ---------------------------- ASSET DETAIL ---------------------------- */
+function renderAssetDetail(view, id){
+  const asset = getAsset(id);
+  if(!asset){ location.hash = '#/assets'; return; }
+  setHeader('ทะเบียนทรัพย์สิน / รายละเอียด', asset.name);
+  const history = assetHistory(id);
+
+  view.innerHTML = `
+    <a href="#/assets" style="display:inline-flex;align-items:center;gap:6px;color:var(--ink-900);font-size:13px;margin-bottom:14px;text-decoration:none;">${ICONS.arrowLeft} กลับไปยังทะเบียนทรัพย์สิน</a>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-pad">
+        <div class="detail-head">
+          <div>
+            <div class="detail-title">${escapeHtml(asset.name)}</div>
+            ${statusTag(asset.status)}
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline btn-sm" id="btnEditAsset">${ICONS.edit}แก้ไข</button>
+            <button class="btn btn-outline btn-sm" id="btnAssignAsset">${ICONS.assign}มอบหมาย/คืน</button>
+            <button class="btn btn-outline btn-sm" id="btnMaintainAsset">${ICONS.wrench}แจ้งซ่อมบำรุง</button>
+          </div>
+        </div>
+        <div class="kv-grid">
+          <div class="kv-item"><div class="k">หมวดหมู่</div><div class="v">${escapeHtml(getCategory(asset.categoryId)?.name||'-')}</div></div>
+          <div class="kv-item"><div class="k">หน่วยงาน</div><div class="v">${escapeHtml(getDepartment(asset.departmentId)?.name||'-')}</div></div>
+          <div class="kv-item"><div class="k">ผู้ถือครอง</div><div class="v">${escapeHtml(holderDisplayName(asset)||'ไม่มีผู้ถือครอง')}</div></div>
+          <div class="kv-item"><div class="k">วันที่เบิกไปใช้งาน</div><div class="v">${fmtDate(asset.purchaseDate)}</div></div>
+          <div class="kv-item"><div class="k">วันที่นำกลับมาคืน</div><div class="v">${asset.returnDate?fmtDate(asset.returnDate):'-'}</div></div>
+          <div class="kv-item"><div class="k">ราคาทุน</div><div class="v">${fmtMoney(asset.cost)} บาท</div></div>
+          <div class="kv-item"><div class="k">สถานที่จัดเก็บ</div><div class="v">${escapeHtml(asset.location||'-')}</div></div>
+          <div class="kv-item"><div class="k">ผู้จัดจำหน่าย</div><div class="v">${escapeHtml(asset.vendor||'-')}</div></div>
+          <div class="kv-item"><div class="k">หมายเลขเครื่อง/Serial</div><div class="v">${escapeHtml(asset.serial||'-')}</div></div>
+        </div>
+        ${asset.note?`<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);"><div class="kv-item"><div class="k">หมายเหตุ</div><div class="v" style="font-weight:400;">${escapeHtml(asset.note)}</div></div></div>`:''}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>ประวัติทรัพย์สิน</h3></div>
+      <div class="card-pad">
+        <div class="timeline">
+          ${history.map(h=>`
+            <div class="tl-item"><div class="tl-dot">${h.type==='maintenance'?ICONS.wrench:(h.type==='created'?ICONS.box:ICONS.check)}</div>
+              <div class="tl-content"><div class="tl-title">${escapeHtml(h.text)}</div><div class="tl-meta">${fmtDate(h.date)}${h.meta?' · '+escapeHtml(h.meta):''}</div></div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btnEditAsset').addEventListener('click', ()=>openAssetForm(asset.id));
+  document.getElementById('btnAssignAsset').addEventListener('click', ()=>openAssignmentForm(asset.id));
+  document.getElementById('btnMaintainAsset').addEventListener('click', ()=>openMaintenanceForm(asset.id));
+}
+
+/* ---------------------------- CATEGORIES ---------------------------- */
+function renderCategories(view){
+  setHeader('การตั้งค่าทะเบียน', 'หมวดหมู่ทรัพย์สิน');
+  view.innerHTML = `
+    <div class="card">
+      <div class="card-head"><h3>รายการหมวดหมู่</h3>
+        <button class="btn btn-primary btn-sm" id="btnAddCat">${ICONS.plus}เพิ่มหมวดหมู่</button>
+      </div>
+      <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>รหัส</th><th>ชื่อหมวดหมู่</th><th>จำนวนทรัพย์สิน</th><th></th></tr></thead>
+        <tbody>
+          ${DB.categories.map(c=>`
+            <tr>
+              <td><span class="asset-code">${escapeHtml(c.code)}</span></td>
+              <td>${escapeHtml(c.name)}</td>
+              <td>${DB.assets.filter(a=>a.categoryId===c.id).length}</td>
+              <td><div class="row-actions">
+                <button class="icon-btn" data-edit="${c.id}">${ICONS.edit}</button>
+                <button class="icon-btn danger" data-del="${c.id}">${ICONS.trash}</button>
+              </div></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  `;
+  document.getElementById('btnAddCat').addEventListener('click', ()=>openCategoryForm());
+  view.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', ()=>openCategoryForm(b.dataset.edit)));
+  view.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', ()=>{
+    const inUse = DB.assets.some(a=>a.categoryId===b.dataset.del);
+    if(inUse){ toast('ไม่สามารถลบได้ เนื่องจากมีทรัพย์สินอยู่ในหมวดหมู่นี้', true); return; }
+    DB.categories = DB.categories.filter(c=>c.id!==b.dataset.del);
+    toast('ลบหมวดหมู่เรียบร้อยแล้ว'); rerender();
+  }));
+}
+
+function openCategoryForm(id){
+  const cat = id ? DB.categories.find(c=>c.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h3>${cat?'แก้ไขหมวดหมู่':'เพิ่มหมวดหมู่ใหม่'}</h3><button class="modal-close" id="mClose">${ICONS.x}</button></div>
+    <form id="catForm">
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>รหัสหมวดหมู่ <span class="req">*</span></label><input name="code" required maxlength="4" style="text-transform:uppercase" value="${cat?cat.code:''}" placeholder="เช่น IT"></div>
+        <div class="field"><label>ชื่อหมวดหมู่ <span class="req">*</span></label><input name="name" required value="${cat?escapeHtml(cat.name):''}"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-outline" id="mCancel">ยกเลิก</button>
+      <button type="submit" class="btn btn-primary">${ICONS.check}บันทึก</button>
+    </div>
+    </form>
+  `);
+  document.getElementById('mClose').onclick = closeModal;
+  document.getElementById('mCancel').onclick = closeModal;
+  document.getElementById('catForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target).entries());
+    if(cat){
+      Object.assign(cat, {code:fd.code.toUpperCase(), name:fd.name});
+    }else{
+      DB.categories.push({id:uid('cat'), code:fd.code.toUpperCase(), name:fd.name, usefulLife:5, salvagePct:5});
+      if(!DB.seq[fd.code.toUpperCase()]) DB.seq[fd.code.toUpperCase()] = 0;
+    }
+    closeModal(); toast('บันทึกหมวดหมู่เรียบร้อยแล้ว'); rerender();
+  });
+}
+
+/* ---------------------------- ASSIGNMENTS ---------------------------- */
+function renderAssignments(view){
+  setHeader('การเบิก–ยืม/มอบหมาย', 'ประวัติการมอบหมายทรัพย์สิน');
+  const rows = [...DB.assignments].sort((a,b)=> new Date(b.dateOut)-new Date(a.dateOut));
+  view.innerHTML = `
+    <div class="card">
+      <div class="table-toolbar">
+        <div class="hint" style="font-size:12.5px;color:var(--ink-500)">ทั้งหมด ${rows.length} รายการ</div>
+        <div class="toolbar-right">
+          <button class="btn btn-primary" id="btnNewAssign">${ICONS.plus}มอบหมายทรัพย์สิน</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>ทรัพย์สิน</th><th>ผู้รับมอบ</th><th>หน่วยงาน</th><th>วันที่มอบหมาย</th><th>วันที่คืน</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody>
+          ${rows.map(a=>{
+            const asset = getAsset(a.assetId);
+            const active = !a.dateReturn;
+            return `<tr>
+              <td>${asset? `<a href="#/assets/${asset.id}" style="color:var(--ink-900);text-decoration:none;font-weight:600;">${escapeHtml(asset.name)}</a>` : '<span class="cell-sub">ทรัพย์สินถูกลบแล้ว</span>'}</td>
+              <td>${escapeHtml(getEmployee(a.employeeId)?.name||'-')}</td>
+              <td>${escapeHtml(getDepartment(a.departmentId)?.name||'-')}</td>
+              <td>${fmtDate(a.dateOut)}</td>
+              <td>${a.dateReturn?fmtDate(a.dateReturn):'—'}</td>
+              <td>${active?'<span class="tag tag-active"><span class="tag-dot"></span>ถือครองอยู่</span>':'<span class="tag tag-disposed"><span class="tag-dot"></span>คืนแล้ว</span>'}</td>
+              <td><div class="row-actions">${active&&asset?`<button class="btn btn-outline btn-sm" data-return="${a.id}">รับคืน</button>`:''}</div></td>
+            </tr>`;
+          }).join('') || `<tr><td colspan="7"><div class="empty-state">${ICONS.assign}<div class="et">ยังไม่มีการมอบหมายทรัพย์สิน</div></div></td></tr>`}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  `;
+  document.getElementById('btnNewAssign').addEventListener('click', ()=>openAssignmentForm());
+  view.querySelectorAll('[data-return]').forEach(b=>b.addEventListener('click', ()=>markReturned(b.dataset.return)));
+}
+
+function markReturned(assignId){
+  const a = DB.assignments.find(x=>x.id===assignId);
+  if(!a) return;
+  openModal(`
+    <div class="modal-head"><h3>รับคืนทรัพย์สิน</h3><button class="modal-close" id="mClose">${ICONS.x}</button></div>
+    <form id="returnForm">
+    <div class="modal-body">
+      <div class="field full"><label>วันที่รับคืน</label><input type="date" name="dateReturn" required value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field full" style="margin-top:10px;"><label>หมายเหตุ</label><textarea name="note" rows="2" placeholder="สภาพทรัพย์สินขณะรับคืน (ถ้ามี)"></textarea></div>
+    </div>
+    <div class="modal-foot"><button type="button" class="btn btn-outline" id="mCancel">ยกเลิก</button><button type="submit" class="btn btn-primary">${ICONS.check}ยืนยันรับคืน</button></div>
+    </form>
+  `);
+  document.getElementById('mClose').onclick = closeModal;
+  document.getElementById('mCancel').onclick = closeModal;
+  document.getElementById('returnForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target).entries());
+    a.dateReturn = fd.dateReturn; a.note = (a.note?a.note+' / ':'') + (fd.note||'');
+    const asset = getAsset(a.assetId);
+    if(asset && asset.holderId===a.employeeId){ asset.holderId = null; asset.holderName=''; if(asset.status==='issued') asset.status='ready'; }
+    closeModal(); toast('บันทึกการรับคืนทรัพย์สินแล้ว'); rerender();
+  });
+}
+
+function openAssignmentForm(presetAssetId){
+  const availableAssets = DB.assets.filter(a=>a.status!=='broken');
+  openModal(`
+    <div class="modal-head"><h3>มอบหมายทรัพย์สิน</h3><button class="modal-close" id="mClose">${ICONS.x}</button></div>
+    <form id="assignForm">
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field full">
+          <label>ทรัพย์สิน <span class="req">*</span></label>
+          <select name="assetId" required>
+            ${availableAssets.map(a=>`<option value="${a.id}" ${presetAssetId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>มอบหมายให้ <span class="req">*</span></label>
+          <select name="employeeId" required>${DB.employees.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>หน่วยงาน</label>
+          <select name="departmentId">${DB.departments.map(d=>`<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>วันที่มอบหมาย <span class="req">*</span></label><input type="date" name="dateOut" required value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field full"><label>หมายเหตุ</label><textarea name="note" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button type="button" class="btn btn-outline" id="mCancel">ยกเลิก</button><button type="submit" class="btn btn-primary">${ICONS.check}บันทึกการมอบหมาย</button></div>
+    </form>
+  `);
+  document.getElementById('mClose').onclick = closeModal;
+  document.getElementById('mCancel').onclick = closeModal;
+  document.getElementById('assignForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target).entries());
+    DB.assignments.push({id:uid('asg'), assetId:fd.assetId, employeeId:fd.employeeId, departmentId:fd.departmentId, dateOut:fd.dateOut, dateReturn:null, note:fd.note});
+    const asset = getAsset(fd.assetId);
+    if(asset){ asset.holderId = fd.employeeId; asset.holderName=''; asset.departmentId = fd.departmentId || asset.departmentId; if(asset.status==='ready') asset.status='issued'; }
+    closeModal(); toast('มอบหมายทรัพย์สินเรียบร้อยแล้ว'); rerender();
+  });
+}
+
+/* ---------------------------- MAINTENANCE ---------------------------- */
+function renderMaintenance(view){
+  setHeader('ซ่อมบำรุง', 'บันทึกการซ่อมบำรุงทรัพย์สิน');
+  const rows = [...DB.maintenance].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const inProgress = DB.maintenance.filter(m=>m.status==='in_progress').length;
+  view.innerHTML = `
+    <div class="grid grid-2" style="margin-bottom:16px;">
+      <div class="card kpi-card"><div class="kpi-bar" style="background:var(--amber-700)"></div><div class="kpi-label">กำลังซ่อมบำรุง</div><div class="kpi-value">${inProgress}</div></div>
+      <div class="card kpi-card"><div class="kpi-bar" style="background:var(--navy-800)"></div><div class="kpi-label">บันทึกทั้งหมด</div><div class="kpi-value">${DB.maintenance.length}</div></div>
+    </div>
+    <div class="card">
+      <div class="table-toolbar">
+        <div class="hint" style="font-size:12.5px;color:var(--ink-500)">ทั้งหมด ${rows.length} รายการ</div>
+        <div class="toolbar-right"><button class="btn btn-primary" id="btnNewMaint">${ICONS.plus}แจ้งซ่อมบำรุง</button></div>
+      </div>
+      <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>ทรัพย์สิน</th><th>ประเภท</th><th>วันที่แจ้ง</th><th>ผู้รับซ่อม</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody>
+          ${rows.map(m=>{
+            const asset = getAsset(m.assetId);
+            return `<tr>
+              <td>${asset?`<a href="#/assets/${asset.id}" style="color:var(--ink-900);text-decoration:none;font-weight:600;">${escapeHtml(asset.name)}</a>`:'<span class="cell-sub">ทรัพย์สินถูกลบแล้ว</span>'}</td>
+              <td>${escapeHtml(m.type)}<div class="cell-sub">${escapeHtml(m.description||'')}</div></td>
+              <td>${fmtDate(m.date)}</td>
+              <td>${escapeHtml(m.vendor||'-')}</td>
+              <td>${m.status==='in_progress'?'<span class="tag tag-maintenance"><span class="tag-dot"></span>กำลังดำเนินการ</span>':'<span class="tag tag-active"><span class="tag-dot"></span>เสร็จสิ้น</span>'}</td>
+              <td><div class="row-actions">${m.status==='in_progress'?`<button class="btn btn-outline btn-sm" data-complete="${m.id}">แจ้งเสร็จสิ้น</button>`:''}</div></td>
+            </tr>`;
+          }).join('') || `<tr><td colspan="6"><div class="empty-state">${ICONS.wrench}<div class="et">ยังไม่มีบันทึกการซ่อมบำรุง</div></div></td></tr>`}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  `;
+  document.getElementById('btnNewMaint').addEventListener('click', ()=>openMaintenanceForm());
+  view.querySelectorAll('[data-complete]').forEach(b=>b.addEventListener('click', ()=>completeMaintenance(b.dataset.complete)));
+}
+
+function completeMaintenance(id){
+  const m = DB.maintenance.find(x=>x.id===id);
+  if(!m) return;
+  m.status = 'done'; m.completedDate = new Date().toISOString().slice(0,10);
+  const asset = getAsset(m.assetId);
+  if(asset && asset.status==='repair'){
+    const stillOpen = DB.maintenance.some(x=>x.assetId===asset.id && x.status==='in_progress' && x.id!==m.id);
+    if(!stillOpen) asset.status = 'ready';
+  }
+  toast('บันทึกการซ่อมบำรุงเสร็จสิ้นแล้ว'); rerender();
+}
+
+function openMaintenanceForm(presetAssetId){
+  openModal(`
+    <div class="modal-head"><h3>แจ้งซ่อมบำรุงทรัพย์สิน</h3><button class="modal-close" id="mClose">${ICONS.x}</button></div>
+    <form id="maintForm">
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field full"><label>ทรัพย์สิน <span class="req">*</span></label>
+          <select name="assetId" required>${DB.assets.map(a=>`<option value="${a.id}" ${presetAssetId===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>ประเภทงาน <span class="req">*</span></label>
+          <select name="type" required>
+            <option>ตรวจเช็คตามระยะ</option><option>ซ่อมบำรุงตามระยะ</option><option>ซ่อมแซม</option><option>อื่นๆ</option>
+          </select>
+        </div>
+        <div class="field"><label>วันที่แจ้ง <span class="req">*</span></label><input type="date" name="date" required value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label>ผู้รับซ่อม / ร้าน</label><input type="text" name="vendor"></div>
+        <div class="field full"><label>รายละเอียดอาการ/งานที่ทำ</label><textarea name="description" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button type="button" class="btn btn-outline" id="mCancel">ยกเลิก</button><button type="submit" class="btn btn-primary">${ICONS.check}บันทึก</button></div>
+    </form>
+  `);
+  document.getElementById('mClose').onclick = closeModal;
+  document.getElementById('mCancel').onclick = closeModal;
+  document.getElementById('maintForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target).entries());
+    DB.maintenance.push({id:uid('mnt'), assetId:fd.assetId, date:fd.date, type:fd.type, vendor:fd.vendor, description:fd.description, status:'in_progress', completedDate:null});
+    const asset = getAsset(fd.assetId);
+    if(asset) asset.status = 'repair';
+    closeModal(); toast('แจ้งซ่อมบำรุงเรียบร้อยแล้ว'); rerender();
+  });
+}
+
+/* ---------------------------- SETTINGS ---------------------------- */
+function renderSettingsLock(view){
+  setHeader('ตั้งค่าระบบ', 'ยืนยันสิทธิ์ผู้ดูแลระบบ');
+  view.innerHTML = `
+    <div class="card" style="max-width:420px;margin:40px auto;">
+      <div class="card-pad" style="text-align:center;">
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--paper-alt);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--navy-800);">${ICONS.lock}</div>
+        <h3 style="margin-bottom:6px;">พื้นที่สำหรับผู้ดูแลระบบ</h3>
+        <p style="font-size:13px;color:var(--ink-500);margin-bottom:18px;">การตั้งค่าระบบสงวนไว้สำหรับผู้ดูแลระบบเท่านั้น กรุณากรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
+        <form id="settingsLockForm" style="display:flex;flex-direction:column;gap:12px;">
+          <input type="password" name="pin" placeholder="รหัสผ่านผู้ดูแลระบบ" autofocus required
+            style="text-align:center;letter-spacing:.2em;border:1px solid var(--line);border-radius:var(--radius-s);padding:10px;">
+          <div id="lockError" style="color:var(--red-700);font-size:12.5px;display:none;">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>
+          <button type="submit" class="btn btn-primary" style="justify-content:center;">${ICONS.unlock}เข้าสู่การตั้งค่าระบบ</button>
+        </form>
+      </div>
+    </div>
+  `;
+  document.getElementById('settingsLockForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target).entries());
+    if(fd.pin === (DB.adminPin || '1234')){
+      settingsUnlocked = true;
+      renderSettings(view);
+    }else{
+      document.getElementById('lockError').style.display = 'block';
+      e.target.reset();
+      e.target.querySelector('input[name="pin"]').focus();
+    }
+  });
+}
+
+function renderSettings(view){
+  setHeader('ตั้งค่าระบบ', 'ตั้งค่าองค์กร หน่วยงาน และการสำรองข้อมูล');
+  view.innerHTML = `
+    <div class="helper-note" style="justify-content:space-between;align-items:center;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">${ICONS.lock}<div>หน้านี้ปลดล็อกสำหรับผู้ดูแลระบบแล้วในเซสชันนี้ — กดล็อกอีกครั้งได้ทุกเมื่อ</div></div>
+      <button class="btn btn-outline btn-sm no-print" id="btnLockSettings" style="flex-shrink:0;">${ICONS.lock}ล็อกหน้านี้</button>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-head"><h3>ข้อมูลองค์กร</h3></div>
+        <div class="card-pad">
+          <form id="orgForm">
+            <div class="field" style="margin-bottom:12px;"><label>ชื่อองค์กร / หน่วยงาน</label><input name="orgName" value="${escapeHtml(DB.orgName)}"></div>
+            <div class="field" style="margin-bottom:14px;"><label>ชื่อรอง (เช่น สำนักงาน/สาขา)</label><input name="orgSub" value="${escapeHtml(DB.orgSub||'')}"></div>
+            <button class="btn btn-primary" type="submit">${ICONS.check}บันทึกข้อมูลองค์กร</button>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>สำรอง / นำเข้าข้อมูล</h3></div>
+        <div class="card-pad">
+          <p style="font-size:13px;color:var(--ink-700);margin-top:0;">ดาวน์โหลดข้อมูลทั้งหมดเป็นไฟล์ Excel (.xlsx) เพื่อสำรองไว้ — ไฟล์จะมีหลายชีทแยกตามประเภทข้อมูล (ทรัพย์สิน, หมวดหมู่, หน่วยงาน, บุคลากร, การมอบหมาย, ซ่อมบำรุง) หรือนำไฟล์ที่เคยสำรองกลับเข้าสู่ระบบได้</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-outline" id="btnExport">${ICONS.download}ส่งออกข้อมูล (Excel)</button>
+            <button class="btn btn-outline" id="btnImportTrigger">${ICONS.upload}นำเข้าข้อมูล (Excel)</button>
+            <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-head"><h3>หน่วยงาน</h3><button class="btn btn-primary btn-sm" id="btnAddDept">${ICONS.plus}เพิ่ม</button></div>
+        <div style="overflow-x:auto;">
+        <table class="data-table"><thead><tr><th>ชื่อหน่วยงาน</th><th>จำนวนบุคลากร</th><th></th></tr></thead>
+        <tbody>${DB.departments.map(d=>`<tr><td>${escapeHtml(d.name)}</td><td>${DB.employees.filter(e=>e.department===d.id).length}</td>
+          <td><div class="row-actions"><button class="icon-btn danger" data-deldept="${d.id}">${ICONS.trash}</button></div></td></tr>`).join('')}</tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>รหัสผ่านผู้ดูแลระบบ</h3></div>
+        <div class="card-pad">
+          <p style="font-size:13px;color:var(--ink-700);margin-top:0;">ใช้รหัสผ่านนี้เพื่อเข้าถึงหน้าตั้งค่าระบบ</p>
+          <form id="pinForm">
+            <div class="field" style="margin-bottom:12px;"><label>รหัสผ่านปัจจุบัน</label><input type="password" name="currentPin" required></div>
+            <div class="field" style="margin-bottom:12px;"><label>รหัสผ่านใหม่</label><input type="password" name="newPin" required minlength="4"></div>
+            <div class="field" style="margin-bottom:14px;"><label>ยืนยันรหัสผ่านใหม่</label><input type="password" name="confirmPin" required minlength="4"></div>
+            <button class="btn btn-primary" type="submit">${ICONS.check}เปลี่ยนรหัสผ่าน</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btnLockSettings').addEventListener('click', ()=>{
+    settingsUnlocked = false; toast('ล็อกหน้าตั้งค่าระบบแล้ว'); location.hash = '#/dashboard';
+  });
+
+  document.getElementById('pinForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target).entries());
+    if(fd.currentPin !== (DB.adminPin||'1234')){ toast('รหัสผ่านปัจจุบันไม่ถูกต้อง', true); return; }
+    if(fd.newPin !== fd.confirmPin){ toast('รหัสผ่านใหม่และการยืนยันไม่ตรงกัน', true); return; }
+    DB.adminPin = fd.newPin;
+    toast('เปลี่ยนรหัสผ่านผู้ดูแลระบบเรียบร้อยแล้ว'); e.target.reset();
+  });
+
+  document.getElementById('orgForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target).entries());
+    DB.orgName = fd.orgName || 'องค์กรของคุณ'; DB.orgSub = fd.orgSub || '';
+    toast('บันทึกข้อมูลองค์กรเรียบร้อยแล้ว'); applyBranding(); rerender();
+  });
+
+  document.getElementById('btnExport').addEventListener('click', ()=>{
+    if(typeof XLSX==='undefined'){ toast('ไม่สามารถโหลดไลบรารี Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่', true); return; }
+    try{
+      const wb = buildWorkbook();
+      XLSX.writeFile(wb, `asset-management-backup-${new Date().toISOString().slice(0,10)}.xlsx`);
+      toast('ส่งออกไฟล์ Excel สำรองข้อมูลเรียบร้อยแล้ว');
+    }catch(err){ toast('เกิดข้อผิดพลาดขณะส่งออกไฟล์', true); }
+  });
+  document.getElementById('btnImportTrigger').addEventListener('click', ()=>document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    if(typeof XLSX==='undefined'){ toast('ไม่สามารถโหลดไลบรารี Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่', true); e.target.value=''; return; }
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = new Uint8Array(reader.result);
+        const wb = XLSX.read(data, {type:'array', cellDates:true});
+        const parsed = parseWorkbook(wb);
+        DB = parsed;
+        toast('นำเข้าข้อมูลจากไฟล์ Excel เรียบร้อยแล้ว'); applyBranding(); rerender();
+      }catch(err){ toast('ไฟล์ไม่ถูกต้อง ไม่สามารถนำเข้าข้อมูลได้', true); }
+      e.target.value='';
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  document.getElementById('btnAddDept').addEventListener('click', ()=>{
+    openModal(`<div class="modal-head"><h3>เพิ่มหน่วยงาน</h3><button class="modal-close" id="mClose">${ICONS.x}</button></div>
+      <form id="deptForm"><div class="modal-body"><div class="field"><label>ชื่อหน่วยงาน <span class="req">*</span></label><input name="name" required></div></div>
+      <div class="modal-foot"><button type="button" class="btn btn-outline" id="mCancel">ยกเลิก</button><button type="submit" class="btn btn-primary">${ICONS.check}บันทึก</button></div></form>`);
+    document.getElementById('mClose').onclick = closeModal; document.getElementById('mCancel').onclick = closeModal;
+    document.getElementById('deptForm').addEventListener('submit', ev=>{
+      ev.preventDefault(); const fd = Object.fromEntries(new FormData(ev.target).entries());
+      DB.departments.push({id:uid('dep'), name:fd.name}); closeModal(); toast('เพิ่มหน่วยงานเรียบร้อยแล้ว'); rerender();
+    });
+  });
+  view.querySelectorAll('[data-deldept]').forEach(b=>b.addEventListener('click', ()=>{
+    if(DB.assets.some(a=>a.departmentId===b.dataset.deldept)){ toast('ไม่สามารถลบได้ เนื่องจากมีทรัพย์สินอยู่ในหน่วยงานนี้', true); return; }
+    DB.departments = DB.departments.filter(d=>d.id!==b.dataset.deldept); toast('ลบหน่วยงานเรียบร้อยแล้ว'); rerender();
+  }));
+}
+
+/* ---------------------------- Branding / boot ---------------------------- */
+function applyBranding(){
+  document.getElementById('brandOrgName').textContent = DB.orgName || 'องค์กรของคุณ';
+  const initials = (DB.orgName||'อส').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('');
+  document.getElementById('brandMark').textContent = initials || 'อส';
+}
+function updateClock(){
+  const now = new Date();
+  const days=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  document.getElementById('todayPill').textContent = `วัน${days[now.getDay()]}ที่ ${fmtDate(now.toISOString())}`;
+}
+
+async function boot(){
+  const loaded = await storageGet();
+  DB = loaded || seedData();
+  if(!loaded) await storageSet(DB);
+  applyBranding();
+  updateClock();
+  document.getElementById('hamburgerBtn').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+  window.addEventListener('hashchange', router);
+  if(!location.hash) location.hash = '#/dashboard';
+  router();
+}
+boot();
+</script>
+</body>
+</html>

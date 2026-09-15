@@ -40,7 +40,7 @@ export default function SettingsPage() {
     syncWithD1,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>('org');
+  // activeTab removed for single page layout
   const [isSyncingD1, setIsSyncingD1] = useState(false);
 
   // Organization form
@@ -358,33 +358,11 @@ export default function SettingsPage() {
   };
 
   return (
-    <div>
-      {/* Settings Navigation Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18, borderBottom: '1px solid var(--line)', paddingBottom: 12 }}>
-        <button
-          className={`btn btn-sm ${activeTab === 'org' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setActiveTab('org')}
-        >
-          🏢 ข้อมูลองค์กร
-        </button>
-        <button
-          className={`btn btn-sm ${activeTab === 'dept_emp' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setActiveTab('dept_emp')}
-        >
-          👥 หน่วยงาน & บุคลากร
-        </button>
-        <button
-          className={`btn btn-sm ${activeTab === 'data' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setActiveTab('data')}
-        >
-          💾 สำรอง & จัดการข้อมูล
-        </button>
-      </div>
-
-      {/* Tab 1: Organization */}
-      {activeTab === 'org' && (
-        <div style={{ maxWidth: 640 }}>
-          <div className="card">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
+      {/* Row 1: Org and Backup */}
+      <div className="grid grid-2-equal" style={{ alignItems: 'stretch' }}>
+        {/* Section: Organization */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="card-head">
               <h3>ข้อมูลองค์กร / ส่วนราชการ</h3>
             </div>
@@ -413,13 +391,54 @@ export default function SettingsPage() {
               </form>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Tab 2: Departments & Personnel */}
-      {activeTab === 'dept_emp' && (
-        <div className="grid grid-2-equal" style={{ alignItems: 'start' }}>
-          {/* Departments Card */}
+          {/* Section: Backup & Data Management */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="card-head">
+              <h3>สำรองและนำเข้าข้อมูล (Excel)</h3>
+            </div>
+            <div className="card-pad" style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, color: 'var(--ink-700)', marginTop: 0 }}>
+                ส่งออกข้อมูลทั้งหมดเป็นไฟล์ Excel (.xlsx) เพื่อสำรองข้อมูล
+                หรือนำเข้าไฟล์สำรองที่เคยบันทึกไว้เพื่อกู้คืนข้อมูล
+              </p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+                <button className="btn btn-outline" onClick={exportToExcel}>
+                  <Icons.download size={15} /> ส่งออกข้อมูลทั้งหมด (.xlsx)
+                </button>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Icons.upload size={15} /> นำเข้าข้อมูลสำรอง (.xlsx)
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".xlsx,.xls"
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                />
+              </div>
+
+              <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--line)' }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 4 }}>
+                  ดาวน์โหลดไฟล์แม่แบบ (Excel Template)
+                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--ink-500)', marginTop: 0 }}>
+                  หากต้องการนำเข้าทรัพย์สินจำนวนมากจากไฟล์ Excel สามารถดาวน์โหลดไฟล์แม่แบบที่มีโครงสร้างชีทและคอลัมน์มาตรฐานไปกรอกข้อมูลได้ทันที
+                </p>
+                <button className="btn btn-gold btn-sm" onClick={downloadExcelTemplate}>
+                  <Icons.download size={14} /> ดาวน์โหลดแม่แบบ Excel
+                </button>
+              </div>
+            </div>
+          </div>
+      </div>
+
+      {/* Row 2: Departments & Employees */}
+      <div className="grid grid-2-equal" style={{ alignItems: 'start' }}>
+          {/* Section: Departments */}
           <div className="card">
             <div className="card-head">
               <div>
@@ -584,8 +603,9 @@ export default function SettingsPage() {
                         />
                       </label>
                     </th>
-                    <th>ชื่อ-นามสกุล / ชื่อผู้ใช้</th>
-                    <th>สิทธิ์ & ตำแหน่ง</th>
+                    <th>ชื่อ / รหัสพนักงาน</th>
+                    <th>สิทธิ์</th>
+                    <th>ตำแหน่ง</th>
                     <th>หน่วยงาน</th>
                     <th className="th-right" style={{ width: 80 }}>จัดการ</th>
                   </tr>
@@ -620,25 +640,21 @@ export default function SettingsPage() {
                             </div>
                           </td>
                           <td>
-                            <span className={`role-badge ${roleMeta.badgeCls}`} style={{ marginBottom: 2 }}>
+                            <span className={`role-badge ${roleMeta.badgeCls}`}>
                               {roleMeta.label}
                             </span>
-                            {emp.position && (
-                              <div style={{ fontSize: 12, color: 'var(--ink-700)' }}>{emp.position}</div>
-                            )}
                           </td>
                           <td>
-                            {dept?.name ? (
+                            <div style={{ color: 'var(--ink-800)' }}>{emp.position || '-'}</div>
+                          </td>
+                          <td>
+                            {dept ? (
                               <span className="badge-pill">{dept.name}</span>
                             ) : (
                               <span className="cell-sub">-</span>
                             )}
-                            {emp.location && (
-                              <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 2 }}>
-                                {emp.location}
-                              </div>
-                            )}
                           </td>
+
                           <td>
                             <div className="row-actions">
                               <button
@@ -662,7 +678,7 @@ export default function SettingsPage() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={6}>
                         <div className="empty-state" style={{ padding: '36px 10px' }}>
                           <div className="et">ไม่พบรายชื่อบุคลากร</div>
                           <div>กดปุ่ม "เพิ่มบุคลากร" เพื่อเพิ่มข้อมูลผู้ใช้งาน</div>
@@ -686,14 +702,12 @@ export default function SettingsPage() {
               }}
             />
           </div>
-        </div>
-      )}
+      </div>
 
-      {/* Tab 3: Backup & Data Management */}
-      {activeTab === 'data' && (
-        <div className="grid grid-2-equal">
+      {/* Section: Advanced Management */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Cloudflare D1 Database Card */}
-          <div className="card" style={{ gridColumn: '1 / -1' }}>
+          <div className="card">
             <div className="card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 18 }}>☁️</span>
@@ -786,47 +800,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-head">
-              <h3>สำรองและนำเข้าข้อมูล (Excel)</h3>
-            </div>
-            <div className="card-pad">
-              <p style={{ fontSize: 13, color: 'var(--ink-700)', marginTop: 0 }}>
-                ส่งออกข้อมูลทั้งหมดเป็นไฟล์ Excel (.xlsx) เพื่อสำรองข้อมูล
-                หรือนำเข้าไฟล์สำรองที่เคยบันทึกไว้เพื่อกู้คืนข้อมูล
-              </p>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={exportToExcel}>
-                  <Icons.download size={15} /> ส่งออกข้อมูลทั้งหมด (.xlsx)
-                </button>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Icons.upload size={15} /> นำเข้าข้อมูลสำรอง (.xlsx)
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".xlsx,.xls"
-                  style={{ display: 'none' }}
-                  onChange={handleFileChange}
-                />
-              </div>
-
-              <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--line)' }}>
-                <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 4 }}>
-                  ดาวน์โหลดไฟล์แม่แบบ (Excel Template)
-                </div>
-                <p style={{ fontSize: 12.5, color: 'var(--ink-500)', marginTop: 0 }}>
-                  หากต้องการนำเข้าทรัพย์สินจำนวนมากจากไฟล์ Excel สามารถดาวน์โหลดไฟล์แม่แบบที่มีโครงสร้างชีทและคอลัมน์มาตรฐานไปกรอกข้อมูลได้ทันที
-                </p>
-                <button className="btn btn-gold btn-sm" onClick={downloadExcelTemplate}>
-                  <Icons.download size={14} /> ดาวน์โหลดแม่แบบ Excel
-                </button>
-              </div>
-            </div>
-          </div>
 
           <div className="card" style={{ borderColor: '#fca5a5' }}>
             <div className="card-head" style={{ background: '#fef2f2', borderBottomColor: '#fecaca' }}>
@@ -847,41 +820,36 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+      </div>
 
-      {/* Centered Floating Batch Bar for Departments */}
-      {activeTab === 'dept_emp' && (
-        <>
-          <FloatingBatchBar
-            selectedCount={deptSelectedIds.length}
-            itemLabel="หน่วยงาน"
-            onClearSelection={() => setDeptSelectedIds([])}
-            actions={[
-              {
-                label: 'ลบหน่วยงานที่เลือก',
-                variant: 'danger',
-                icon: <Icons.trash size={14} />,
-                onClick: handleBatchDeleteDept,
-              },
-            ]}
-          />
+      {/* Centered Floating Batch Bar for Departments & Employees */}
+      <FloatingBatchBar
+        selectedCount={deptSelectedIds.length}
+        itemLabel="หน่วยงาน"
+        onClearSelection={() => setDeptSelectedIds([])}
+        actions={[
+          {
+            label: 'ลบหน่วยงานที่เลือก',
+            variant: 'danger',
+            icon: <Icons.trash size={14} />,
+            onClick: handleBatchDeleteDept,
+          },
+        ]}
+      />
 
-          <FloatingBatchBar
-            selectedCount={empSelectedIds.length}
-            itemLabel="คน"
-            onClearSelection={() => setEmpSelectedIds([])}
-            actions={[
-              {
-                label: 'ลบบุคลากรที่เลือก',
-                variant: 'danger',
-                icon: <Icons.trash size={14} />,
-                onClick: handleBatchDeleteEmp,
-              },
-            ]}
-          />
-        </>
-      )}
+      <FloatingBatchBar
+        selectedCount={empSelectedIds.length}
+        itemLabel="คน"
+        onClearSelection={() => setEmpSelectedIds([])}
+        actions={[
+          {
+            label: 'ลบบุคลากรที่เลือก',
+            variant: 'danger',
+            icon: <Icons.trash size={14} />,
+            onClick: handleBatchDeleteEmp,
+          },
+        ]}
+      />
 
       {/* Add Department Modal */}
       <Modal
@@ -943,12 +911,12 @@ export default function SettingsPage() {
 
               <div className="field">
                 <label>
-                  ชื่อผู้ใช้งาน (Username สำหรับเข้าสู่ระบบ) <span className="req">*</span>
+                  รหัสพนักงาน (ใช้เป็น Username สำหรับเข้าสู่ระบบ) <span className="req">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="เช่น somchai"
+                  placeholder="เช่น EMP001 หรือ 12345"
                   value={empUsername}
                   onChange={(e) => setEmpUsername(e.target.value)}
                 />
@@ -977,33 +945,33 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div className="field">
-                <label>สังกัดหน่วยงาน</label>
-                <CustomSelect
-                  placeholder="-- ไม่ระบุ --"
-                  options={[
-                    { value: '', label: '-- ไม่ระบุ --' },
-                    ...db.departments.map((d) => ({
-                      value: d.id,
-                      label: d.name,
-                    })),
-                  ]}
-                  value={empDept}
-                  onChange={(val) => setEmpDept(val)}
-                />
-              </div>
+               <div className="field">
+                 <label>หน่วยงาน / ฝ่าย</label>
+                 <CustomSelect
+                   placeholder="-- ไม่ระบุ --"
+                   options={[
+                     { value: '', label: '-- ไม่ระบุ --' },
+                     ...db.departments.map((d) => ({
+                       value: d.id,
+                       label: d.name,
+                     })),
+                   ]}
+                   value={empDept}
+                   onChange={(val) => setEmpDept(val)}
+                 />
+               </div>
 
-              <div className="field">
-                <label>สถานที่ทำงาน / ห้อง</label>
-                <input
-                  type="text"
-                  placeholder="เช่น อาคาร 1 ชั้น 2"
-                  value={empLocation}
-                  onChange={(e) => setEmpLocation(e.target.value)}
-                />
-              </div>
+               <div className="field">
+                 <label>สถานที่ทำงาน / ห้อง</label>
+                 <input
+                   type="text"
+                   placeholder="เช่น ห้อง 201 อาคาร A"
+                   value={empLocation}
+                   onChange={(e) => setEmpLocation(e.target.value)}
+                 />
+               </div>
 
-              {/* Initial / Temporary Password Box */}
+               {/* Initial / Temporary Password Box */}
               {(!editingEmp || empGeneratedPassword) ? (
                 <div className="field full" style={{ marginTop: 6 }}>
                   <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

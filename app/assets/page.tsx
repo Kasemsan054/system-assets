@@ -8,6 +8,7 @@ import { useApp } from '@/context/AppContext';
 import { Icons } from '@/components/Icons';
 import { Modal } from '@/components/Modal';
 import { CustomSelect } from '@/components/CustomSelect';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import { Pagination } from '@/components/Pagination';
 import { FloatingBatchBar } from '@/components/FloatingBatchBar';
 import { Asset, AssetStatus, STATUS_LABELS } from '@/types';
@@ -44,7 +45,7 @@ function AssetsList() {
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isBatchDeleteModalOpen, setIsBatchDeleteModalOpen] = useState(false);
+  const [isBatchStatusModalOpen, setIsBatchStatusModalOpen] = useState(false);
   const [batchStatusValue, setBatchStatusValue] = useState<AssetStatus>('ready');
 
   // Single Modals state
@@ -142,18 +143,19 @@ function AssetsList() {
 
   // Batch actions
   const handleBatchDelete = () => {
+    const count = selectedIds.length;
     selectedIds.forEach((id) => deleteAsset(id));
     setSelectedIds([]);
-    setIsBatchDeleteModalOpen(false);
-    showToast(`ลบทรัพย์สินที่เลือกจำนวน ${selectedIds.length} รายการแล้ว`);
+    showToast(`ลบทรัพย์สินที่เลือกจำนวน ${count} รายการแล้ว`);
   };
 
   const handleBatchChangeStatus = (newStatus: AssetStatus) => {
+    const count = selectedIds.length;
     selectedIds.forEach((id) => {
-      updateAsset(id, { status: newStatus });
+      updateAsset(id, { status: newStatus }, true);
     });
     setSelectedIds([]);
-    showToast(`เปลี่ยนสถานะทรัพย์สิน ${selectedIds.length} รายการ เป็น "${STATUS_LABELS[newStatus].label}" แล้ว`);
+    showToast(`เปลี่ยนสถานะทรัพย์สิน ${count} รายการ เป็น "${STATUS_LABELS[newStatus].label}" แล้ว`);
   };
 
   const handleBatchExport = () => {
@@ -621,20 +623,20 @@ function AssetsList() {
                 <label>
                   วันที่เบิกไปใช้งาน <span className="req">*</span>
                 </label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   required
                   value={formData.purchaseDate}
-                  onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, purchaseDate: val })}
+                  fullWidth
                 />
               </div>
 
               <div className="field">
                 <label>วันที่นำกลับมาคืน (ถ้ามี)</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={formData.returnDate}
-                  onChange={(e) => setFormData({ ...formData, returnDate: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, returnDate: val })}
+                  fullWidth
                 />
               </div>
 
@@ -723,6 +725,12 @@ function AssetsList() {
             onClick: handleBatchExport,
           },
           {
+            label: 'เปลี่ยนสถานะ',
+            variant: 'primary',
+            icon: <Icons.refresh size={14} />,
+            onClick: () => setIsBatchStatusModalOpen(true),
+          },
+          {
             label: 'ลบที่เลือก',
             variant: 'danger',
             icon: <Icons.trash size={14} />,
@@ -740,6 +748,47 @@ function AssetsList() {
           },
         ]}
       />
+
+      {/* Batch Change Status Modal */}
+      <Modal
+        isOpen={isBatchStatusModalOpen}
+        onClose={() => setIsBatchStatusModalOpen(false)}
+        title={`เปลี่ยนสถานะทรัพย์สิน ${selectedIds.length} รายการ`}
+      >
+        <div className="modal-body">
+          <div className="field full">
+            <label>เลือกสถานะใหม่</label>
+            <CustomSelect
+              fullWidth
+              options={(Object.keys(STATUS_LABELS) as AssetStatus[]).map((st) => ({
+                value: st,
+                label: STATUS_LABELS[st].label,
+              }))}
+              value={batchStatusValue}
+              onChange={(val) => setBatchStatusValue(val as AssetStatus)}
+            />
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setIsBatchStatusModalOpen(false)}
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              handleBatchChangeStatus(batchStatusValue);
+              setIsBatchStatusModalOpen(false);
+            }}
+          >
+            <Icons.check size={15} /> ยืนยันเปลี่ยนสถานะ
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

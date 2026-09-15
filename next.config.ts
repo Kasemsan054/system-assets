@@ -8,6 +8,7 @@ if (process.env.NODE_ENV === "development") {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ["node:sqlite"],
 };
 
 export default nextConfig;

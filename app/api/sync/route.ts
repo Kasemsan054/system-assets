@@ -96,6 +96,16 @@ export async function POST(req: Request) {
       }
     }
 
+    // Also support orgName, orgSub, adminPin sent as top-level fields (from AppContext saveDatabase)
+    const topLevelSettings: Record<string, string> = {};
+    if (body.orgName !== undefined) topLevelSettings.orgName = String(body.orgName);
+    if (body.orgSub !== undefined) topLevelSettings.orgSub = String(body.orgSub);
+    if (body.adminPin !== undefined) topLevelSettings.adminPin = String(body.adminPin);
+    for (const [key, value] of Object.entries(topLevelSettings)) {
+      await db.prepare('INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)')
+        .bind(key, value).run();
+    }
+
     return NextResponse.json({ success: true, message: 'Database synced successfully' });
   } catch (error: any) {
     console.error('Error syncing database:', error);
