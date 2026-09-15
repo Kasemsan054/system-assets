@@ -112,9 +112,19 @@ function createCloudflareRemoteDb(
 
 // ── Local SQLite fallback (Node.js only) ─────────────────────────────────────
 function createLocalSqliteDb(): D1Database {
-  // ใช้ eval เพื่อซ่อน require จาก Next.js Turbopack ป้องกัน Error Unsupported external type
-  // eslint-disable-next-line no-eval
-  const { DatabaseSync } = eval(`require('node:sqlite')`);
+  let DatabaseSync: any;
+  try {
+    const mod = 'node:' + 'sqlite';
+    const req = typeof require !== 'undefined' ? require : null;
+    if (req) DatabaseSync = req(mod).DatabaseSync;
+  } catch {
+    // node:sqlite not available or in edge/workers
+  }
+
+  if (!DatabaseSync) {
+    throw new Error('Database is not available in this environment (Cloudflare D1 binding "DB" missing)');
+  }
+
   const dbDir = path.join(process.cwd(), 'd1');
   if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
@@ -161,8 +171,9 @@ let _localInstance: D1Database | null = null;
 /**
  * Returns a D1-compatible DB instance. Priority:
  * 1. Cloudflare native D1 binding (Workers / Pages edge runtime)
- * 2. Remote Cloudflare D1 via REST API (Node.js dev, with Wrangler token)
- * 3. Local SQLite via node:sqlite (offline fallback)
+ * 2. OpenNext Cloudflare context binding (via Symbol.for('__cloudflare-context__'))
+ * 3. Remote Cloudflare D1 via REST API (Node.js dev, with Wrangler token)
+ * 4. Local SQLite via node:sqlite (offline fallback)
  *
  * Accepts an optional `envBinding` so API routes can pass `env.DB` directly.
  */
@@ -172,11 +183,19 @@ export function getDb(envBinding?: D1Database): D1Database {
     return envBinding;
   }
 
-  // 2. globalThis.DB (edge runtime)
-  const global = (globalThis as any).DB;
+  // 2. OpenNext Cloudflare context
+  try {
+    const cfContext = (globalThis as any)[Symbol.for('__cloudflare-context__')];
+    if (cfContext?.env?.DB && typeof cfContext.env.DB.prepare === 'function') {
+      return cfContext.env.DB as D1Database;
+    }
+  } catch { /* ignore */ }
+
+  // 3. globalThis.DB or process.env.DB (edge runtime)
+  const global = (globalThis as any).DB || (process.env as any).DB;
   if (global && typeof global.prepare === 'function') return global as D1Database;
 
-  // 3. Remote REST API (Node.js dev with Wrangler token)
+  // 4. Remote REST API (Node.js dev with Wrangler token)
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || '8d2da515314ff1d19f23584184c8e847';
   const databaseId = process.env.CLOUDFLARE_DATABASE_ID || '9b5674d3-c3ae-4121-bfc4-fd5c928a39ad';
   const token = getWranglerToken();
@@ -186,7 +205,7 @@ export function getDb(envBinding?: D1Database): D1Database {
     return createCloudflareRemoteDb(accountId, databaseId, token);
   }
 
-  // 4. Local SQLite fallback
+  // 5. Local SQLite fallback
   if (!_localInstance) _localInstance = createLocalSqliteDb();
   return _localInstance;
 }

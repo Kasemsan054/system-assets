@@ -18,6 +18,7 @@ dist/
 
 # Wrangler local state
 .wrangler/
+.open-next/
 d1/local.sqlite
 d1/local.sqlite-wal
 d1/local.sqlite-shm
