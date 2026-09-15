@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '@/context/AppContext';
 import { Icons } from './Icons';
 
@@ -12,6 +13,7 @@ interface LoginModalProps {
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { login, changeUserPassword, showToast } = useApp();
 
+  const [mounted, setMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -21,7 +23,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +71,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  return (
+  return createPortal(
     <div className="login-modal-backdrop" onClick={onClose}>
       <div className="login-modal-card" onClick={(e) => e.stopPropagation()}>
         <button className="login-modal-close" onClick={onClose} aria-label="ปิด">
@@ -111,11 +117,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '10px' }}>
                 เข้าสู่ระบบ
               </button>
-
-              <div className="login-hint-box">
-                <b>💡 บัญชีเริ่มต้นผู้ดูแลระบบ:</b>
-                <div>ชื่อผู้ใช้: <code>admin</code> | รหัสผ่าน: <code>admin1234</code></div>
-              </div>
             </form>
           </div>
         ) : (
@@ -163,6 +164,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
