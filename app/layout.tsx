@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
+import { AuthGuard } from '@/components/AuthGuard';
 import { Sidebar } from '@/components/Sidebar';
 import { Topbar } from '@/components/Topbar';
 
@@ -26,13 +27,16 @@ export default function RootLayout({
       </head>
       <body>
         <AppProvider>
-          <div className="app-container">
-            <Sidebar />
-            <div className="main-col">
-              <Topbar />
-              <main className="content">{children}</main>
+          {/* AuthGuard: shows login page when not authenticated, children when authenticated */}
+          <AuthGuard>
+            <div className="app-container">
+              <Sidebar />
+              <div className="main-col">
+                <Topbar />
+                <main className="content">{children}</main>
+              </div>
             </div>
-          </div>
+          </AuthGuard>
         </AppProvider>
       </body>
     </html>
