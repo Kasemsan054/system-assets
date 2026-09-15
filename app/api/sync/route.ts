@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { hashPassword } from '@/lib/crypto';
 
 export async function GET() {
   try {
@@ -8,7 +9,7 @@ export async function GET() {
     const [categories, departments, employees, assets, assignments, maintenance, settings] = await Promise.all([
       db.prepare('SELECT id, code, name FROM categories ORDER BY code ASC').all(),
       db.prepare('SELECT id, name FROM departments ORDER BY name ASC').all(),
-      db.prepare('SELECT id, name, username, password, must_change_password as mustChangePassword, role, position, department_id as department, location, email FROM employees ORDER BY name ASC').all(),
+      db.prepare('SELECT id, name, username, password, must_change_password as mustChangePassword, role, position, department_id as department, location FROM employees ORDER BY name ASC').all(),
       db.prepare('SELECT id, name, category_id as categoryId, department_id as departmentId, holder_id as holderId, holder_name as holderName, purchase_date as purchaseDate, return_date as returnDate, status, location, vendor, serial, note FROM assets ORDER BY id DESC').all(),
       db.prepare('SELECT id, asset_id as assetId, employee_id as employeeId, department_id as departmentId, date_out as dateOut, date_return as dateReturn, note FROM assignments ORDER BY date_out DESC').all(),
       db.prepare('SELECT id, asset_id as assetId, date, type, vendor, description, status, completed_date as completedDate FROM maintenance ORDER BY date DESC').all(),
@@ -27,6 +28,7 @@ export async function GET() {
         departments: departments.results,
         employees: employees.results.map((e: any) => ({
           ...e,
+          departmentId: e.department,
           mustChangePassword: Boolean(e.mustChangePassword),
         })),
         assets: assets.results,
@@ -63,8 +65,10 @@ export async function POST(req: Request) {
 
     if (body.employees && Array.isArray(body.employees)) {
       for (const e of body.employees) {
-        await db.prepare('INSERT OR REPLACE INTO employees (id, name, username, password, must_change_password, role, position, department_id, location, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-          .bind(e.id, e.name, e.username, e.password || '', e.mustChangePassword ? 1 : 0, e.role || 'user', e.position || '', e.department || null, e.location || '', e.email || '').run();
+        const pwd = e.password ? await hashPassword(e.password) : '';
+        const dept = e.department || e.departmentId || null;
+        await db.prepare('INSERT OR REPLACE INTO employees (id, name, username, password, must_change_password, role, position, department_id, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+          .bind(e.id, e.name, e.username, pwd, e.mustChangePassword ? 1 : 0, e.role || 'user', e.position || '', dept, e.location || '').run();
       }
     }
 

@@ -29,11 +29,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen || !mounted) return null;
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    const res = login(username.trim(), password);
+    const res = await login(username.trim(), password);
     if (!res.success) {
       setErrorMsg(res.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       return;
@@ -50,7 +50,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setPassword('');
   };
 
-  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPass.length < 4) {
       setErrorMsg('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
@@ -62,7 +62,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     }
 
     if (mustChangeUser) {
-      changeUserPassword(mustChangeUser.id, newPass);
+      await changeUserPassword(mustChangeUser.id, newPass);
       showToast('ตั้งรหัสผ่านใหม่และเข้าสู่ระบบเรียบร้อยแล้ว');
       setMustChangeUser(null);
       setNewPass('');

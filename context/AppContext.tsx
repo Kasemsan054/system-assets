@@ -15,6 +15,7 @@ import {
   STATUS_LABELS,
 } from '@/types';
 import { uid, normalizeDateForImport, generateAssetId } from '@/lib/utils';
+import { hashPassword, verifyPassword } from '@/lib/crypto';
 import { CustomDialog } from '@/components/CustomDialog';
 import { Icons } from '@/components/Icons';
 
@@ -25,7 +26,7 @@ export const defaultAdmin: Employee = {
   id: 'emp_admin_system',
   name: 'ผู้ดูแลระบบ (Admin)',
   username: 'admin',
-  password: 'admin1234',
+  password: 'ad6e58a3d80fee65064e90519d4effd7d7288157b2305d2b5472143947d6a421',
   mustChangePassword: false,
   role: 'admin',
   position: 'ผู้ดูแลระบบสารสนเทศ',
@@ -65,9 +66,9 @@ interface AppContextType {
   db: Database;
   isLoaded: boolean;
   currentUser: Employee | null;
-  login: (username: string, password?: string) => { success: boolean; mustChange?: boolean; userId?: string; name?: string; message?: string };
+  login: (username: string, password?: string) => Promise<{ success: boolean; mustChange?: boolean; userId?: string; name?: string; message?: string }>;
   logout: () => void;
-  changeUserPassword: (userId: string, newPass: string) => void;
+  changeUserPassword: (userId: string, newPass: string) => Promise<void>;
   toasts: ToastMessage[];
   showToast: (text: string, typeOrErr?: ToastType | boolean, title?: string) => void;
   removeToast: (id: string) => void;
@@ -98,8 +99,8 @@ interface AppContextType {
   addDepartment: (name: string) => string | null;
   deleteDepartment: (id: string) => boolean;
 
-  addEmployee: (employee: Omit<Employee, 'id'>) => string | null;
-  updateEmployee: (id: string, updates: Partial<Employee>) => void;
+  addEmployee: (employee: Omit<Employee, 'id'>) => Promise<string | null>;
+  updateEmployee: (id: string, updates: Partial<Employee>) => Promise<void>;
   deleteEmployee: (id: string) => boolean;
 
   addAssignment: (assignment: Omit<Assignment, 'id'>) => string;
@@ -235,7 +236,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Auth methods
-  const login = (username: string, password = '') => {
+  const login = async (username: string, password = '') => {
     const user = db.employees.find(
       (e) => e.username.toLowerCase() === username.toLowerCase()
     );
@@ -243,8 +244,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'ไม่พบชื่อผู้ใช้งานนี้ในระบบ' };
     }
 
-    if (user.password && user.password !== password) {
+    const isMatch = await verifyPassword(password, user.password);
+    if (!isMatch) {
       return { success: false, message: 'รหัสผ่านไม่ถูกต้อง' };
+    }
+
+    // If password was stored in legacy plaintext, upgrade it to hash silently
+    if (user.password && !/^[a-f0-9]{64}$/i.test(user.password)) {
+      hashPassword(password).then((hashed) => {
+        user.password = hashed;
+        saveDatabase({ ...db });
+        fetch('/api/employees', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: user.id, password: hashed }),
+        }).catch(() => {});
+      });
     }
 
     // Set current user
@@ -271,14 +286,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const changeUserPassword = (userId: string, newPass: string) => {
+  const changeUserPassword = async (userId: string, newPass: string) => {
+    const hashed = await hashPassword(newPass);
     const updatedEmployees = db.employees.map((e) =>
-      e.id === userId ? { ...e, password: newPass, mustChangePassword: false } : e
+      e.id === userId ? { ...e, password: hashed, mustChangePassword: false } : e
     );
     saveDatabase({ ...db, employees: updatedEmployees });
 
     if (currentUser?.id === userId) {
-      const updatedUser = { ...currentUser, password: newPass, mustChangePassword: false };
+      const updatedUser = { ...currentUser, password: hashed, mustChangePassword: false };
       setCurrentUser(updatedUser);
       try {
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
@@ -287,11 +303,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    fetch('/api/employees', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: userId, password: newPass, mustChangePassword: false }),
-    }).catch((err) => console.warn('D1 sync error:', err));
+    try {
+      const res = await fetch('/api/employees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId, password: hashed, mustChangePassword: false }),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        console.error('Failed to update password in D1:', errJson);
+      }
+    } catch (err) {
+      console.warn('D1 sync error on password change:', err);
+    }
   };
 
   // Toast method
@@ -339,7 +363,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Derived helpers
   const getCategory = (id?: string) => db.categories.find((c) => c.id === id);
-  const getDepartment = (id?: string) => db.departments.find((d) => d.id === id);
+  const getDepartment = (id?: string) => db.departments.find((d) => d.id === id || (id ? d.name.toLowerCase() === id.toLowerCase() : false));
   const getEmployee = (id?: string) => db.employees.find((e) => e.id === id);
   const getAsset = (id?: string) => db.assets.find((a) => a.id === id);
   const holderDisplayName = (asset?: Asset) => {
@@ -514,7 +538,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Employee actions
-  const addEmployee = (empData: Omit<Employee, 'id'>) => {
+  const addEmployee = async (empData: Omit<Employee, 'id'>) => {
     if (empData.username && empData.username.trim()) {
       const u = empData.username.trim().toLowerCase();
       if (db.employees.some((e) => e.username && e.username.trim().toLowerCase() === u)) {
@@ -524,7 +548,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const newId = uid('emp');
-    const newEmp = { ...empData, id: newId };
+    const pwd = empData.password ? await hashPassword(empData.password) : '';
+    const deptId = empData.department || empData.departmentId || '';
+    const newEmp: Employee = {
+      ...empData,
+      id: newId,
+      password: pwd,
+      department: deptId,
+      departmentId: deptId,
+    };
     saveDatabase({
       ...db,
       employees: [...db.employees, newEmp],
@@ -538,7 +570,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return newId;
   };
 
-  const updateEmployee = (id: string, updates: Partial<Employee>) => {
+  const updateEmployee = async (id: string, updates: Partial<Employee>) => {
     if (updates.username && updates.username.trim()) {
       const u = updates.username.trim().toLowerCase();
       if (db.employees.some((e) => e.id !== id && e.username && e.username.trim().toLowerCase() === u)) {
@@ -547,14 +579,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    const finalUpdates = { ...updates };
+    if (finalUpdates.password) {
+      finalUpdates.password = await hashPassword(finalUpdates.password);
+    }
+    if (finalUpdates.department !== undefined) {
+      finalUpdates.departmentId = finalUpdates.department;
+    }
+
     saveDatabase({
       ...db,
-      employees: db.employees.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+      employees: db.employees.map((e) => (e.id === id ? { ...e, ...finalUpdates } : e)),
     });
     fetch('/api/employees', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...updates }),
+      body: JSON.stringify({ id, ...finalUpdates }),
     }).catch((err) => console.warn('D1 sync error:', err));
     showToast('บันทึกข้อมูลบุคลากรเรียบร้อยแล้ว');
   };

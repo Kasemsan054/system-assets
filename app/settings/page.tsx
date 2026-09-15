@@ -212,7 +212,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleEmpSubmit = (e: React.FormEvent) => {
+  const handleEmpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!empName.trim()) return;
 
@@ -228,12 +228,13 @@ export default function SettingsPage() {
     }
 
     if (editingEmp) {
-      updateEmployee(editingEmp.id, {
+      await updateEmployee(editingEmp.id, {
         name: empName.trim(),
         username: finalUsername,
         role: empRole,
         position: empPosition.trim(),
         department: empDept,
+        departmentId: empDept,
         location: empLocation.trim(),
         ...(empGeneratedPassword
           ? { password: empGeneratedPassword, mustChangePassword: true }
@@ -241,7 +242,7 @@ export default function SettingsPage() {
       });
       showToast('บันทึกการแก้ไขข้อมูลบุคลากรเรียบร้อยแล้ว');
     } else {
-      addEmployee({
+      await addEmployee({
         name: empName.trim(),
         username: finalUsername,
         password: empGeneratedPassword,
@@ -249,6 +250,7 @@ export default function SettingsPage() {
         role: empRole,
         position: empPosition.trim(),
         department: empDept,
+        departmentId: empDept,
         location: empLocation.trim(),
       });
       showToast(`เพิ่มบุคลากร "${empName.trim()}" เรียบร้อยแล้ว (รหัสผ่านเริ่มต้น: ${empGeneratedPassword})`);
@@ -608,7 +610,7 @@ export default function SettingsPage() {
                 <tbody>
                   {pagedEmps.length > 0 ? (
                     pagedEmps.map((emp) => {
-                      const dept = getDepartment(emp.department);
+                      const dept = getDepartment(emp.department || emp.departmentId);
                       const isSelected = empSelectedIds.includes(emp.id);
                       const roleMeta = ROLE_LABELS[emp.role] || ROLE_LABELS.user;
                       return (

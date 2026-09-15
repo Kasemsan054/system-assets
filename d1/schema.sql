@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS employees (
     position TEXT,
     department_id TEXT REFERENCES departments(id) ON DELETE SET NULL,
     location TEXT,
-    email TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

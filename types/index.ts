@@ -24,8 +24,8 @@ export interface Employee {
   role: UserRole;
   position?: string;
   department?: string;
+  departmentId?: string;
   location?: string;
-  email?: string;
 }
 
 export interface DialogOptions {

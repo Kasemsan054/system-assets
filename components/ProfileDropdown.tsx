@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { Icons } from './Icons';
 import { ROLE_LABELS } from '@/types';
 import { Modal } from './Modal';
+import { verifyPassword } from '@/lib/crypto';
 
 interface ProfileDropdownProps {
   onOpenLogin: () => void;
@@ -54,13 +55,16 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenLogin })
   const roleInfo = ROLE_LABELS[currentUser.role] || ROLE_LABELS.user;
   const dept = getDepartment(currentUser.department);
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPassError('');
 
-    if (currentUser.password && currentPass !== currentUser.password) {
-      setPassError('รหัสผ่านเดิมไม่ถูกต้อง');
-      return;
+    if (currentUser.password) {
+      const isMatch = await verifyPassword(currentPass, currentUser.password);
+      if (!isMatch) {
+        setPassError('รหัสผ่านเดิมไม่ถูกต้อง');
+        return;
+      }
     }
     if (newPass.length < 4) {
       setPassError('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร');
@@ -71,7 +75,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenLogin })
       return;
     }
 
-    changeUserPassword(currentUser.id, newPass);
+    await changeUserPassword(currentUser.id, newPass);
     showToast('เปลี่ยนรหัสผ่านสำเร็จเรียบร้อยแล้ว');
     setIsChangePassOpen(false);
     setCurrentPass('');
