@@ -4,6 +4,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # OpenNext Cloudflare adapter output
 main = ".open-next/worker.js"
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
 # Cloudflare D1 Database binding
 [[d1_databases]]
