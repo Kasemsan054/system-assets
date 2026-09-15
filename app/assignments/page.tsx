@@ -176,7 +176,7 @@ export default function AssignmentsPage() {
         'ทรัพย์สิน': getAsset(a.assetId)?.name || '',
         'หมายเลขเครื่อง/SN': getAsset(a.assetId)?.serial || '',
         'ผู้รับมอบ': getEmployee(a.employeeId)?.name || a.note || '',
-        'หน่วยงาน': getDepartment(a.departmentId)?.name || '',
+        'แผนก': getDepartment(a.departmentId)?.name || '',
         'วันที่มอบหมาย': a.dateOut || '',
         'วันที่คืน': a.dateReturn || 'ยังไม่คืน',
         'สถานะ': a.dateReturn ? 'คืนแล้ว' : 'กำลังถือครอง',
@@ -274,7 +274,7 @@ export default function AssignmentsPage() {
               </th>
               <th>ทรัพย์สิน</th>
               <th>ผู้รับมอบ</th>
-              <th>หน่วยงาน</th>
+              <th>แผนก</th>
               <th style={{ width: 130 }}>วันที่มอบหมาย</th>
               <th style={{ width: 130 }}>วันที่คืน</th>
               <th style={{ width: 140 }}>สถานะการถือครอง</th>
@@ -304,19 +304,22 @@ export default function AssignmentsPage() {
                     </td>
                     <td>
                       {asset ? (
-                        <Link
-                          href={`/assets/${asset.id}`}
-                          style={{ color: 'var(--ink-900)', fontWeight: 600, textDecoration: 'none' }}
-                        >
-                          {asset.name}
-                        </Link>
+                        <div>
+                          <Link
+                            href={`/assets/${asset.id}`}
+                            style={{ color: 'var(--ink-900)', fontWeight: 600, textDecoration: 'none' }}
+                          >
+                            {asset.name}
+                          </Link>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3 }}>
+                            <span className="asset-id-pill">{asset.id}</span>
+                            {asset?.serial && (
+                              <span className="asset-code">SN: {asset.serial}</span>
+                            )}
+                          </div>
+                        </div>
                       ) : (
                         <span className="cell-sub">ทรัพย์สินถูกลบแล้ว</span>
-                      )}
-                      {asset?.serial && (
-                        <div style={{ marginTop: 2 }}>
-                          <span className="asset-code">SN: {asset.serial}</span>
-                        </div>
                       )}
                     </td>
                     <td>
@@ -460,7 +463,7 @@ export default function AssignmentsPage() {
                   placeholder="-- เลือกทรัพย์สิน --"
                   options={availableAssets.map((a) => ({
                     value: a.id,
-                    label: `${a.name}${a.serial ? ` (${a.serial})` : ''}`,
+                    label: `[${a.id}] ${a.name}${a.serial ? ` (${a.serial})` : ''}`,
                   }))}
                   value={assignForm.assetId}
                   onChange={(val) => setAssignForm({ ...assignForm, assetId: val })}
@@ -499,11 +502,11 @@ export default function AssignmentsPage() {
               </div>
 
               <div className="field">
-                <label>หน่วยงาน</label>
+                <label>แผนก</label>
                 <CustomSelect
-                  placeholder="-- เลือกหน่วยงาน --"
+                  placeholder="-- เลือกแผนก --"
                   options={[
-                    { value: '', label: '-- เลือกหน่วยงาน --' },
+                    { value: '', label: '-- เลือกแผนก --' },
                     ...db.departments.map((d) => ({
                       value: d.id,
                       label: d.name,

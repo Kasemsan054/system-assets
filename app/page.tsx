@@ -62,19 +62,23 @@ export default function DashboardPage() {
 
   const recentActivity: ActivityItem[] = [];
   [...db.assignments].reverse().slice(0, 4).forEach((a) => {
+    const asset = getAsset(a.assetId);
+    const assetLabel = asset ? `[${asset.id}] ${asset.name}` : 'ทรัพย์สิน';
     recentActivity.push({
       id: a.id,
       date: a.dateOut,
-      text: `มอบหมาย “${getAsset(a.assetId)?.name || 'ทรัพย์สิน'}” ให้ ${getEmployee(a.employeeId)?.name || 'ผู้รับมอบ'}`,
+      text: `มอบหมาย “${assetLabel}” ให้ ${getEmployee(a.employeeId)?.name || 'ผู้รับมอบ'}`,
       icon: 'assign',
     });
   });
 
   [...db.maintenance].reverse().slice(0, 3).forEach((m) => {
+    const asset = getAsset(m.assetId);
+    const assetLabel = asset ? `[${asset.id}] ${asset.name}` : 'ทรัพย์สิน';
     recentActivity.push({
       id: m.id,
       date: m.date,
-      text: `แจ้งซ่อม “${getAsset(m.assetId)?.name || 'ทรัพย์สิน'}” — ${m.type}`,
+      text: `แจ้งซ่อม “${assetLabel}” — ${m.type}`,
       icon: 'wrench',
     });
   });
@@ -222,7 +226,12 @@ export default function DashboardPage() {
                     <Icons.wrench size={10} />
                   </div>
                   <div className="tl-content">
-                    <div className="tl-title">{getAsset(m.assetId)?.name || 'ทรัพย์สิน'}</div>
+                    <div className="tl-title">
+                      {(() => {
+                        const asset = getAsset(m.assetId);
+                        return asset ? `[${asset.id}] ${asset.name}` : 'ทรัพย์สิน';
+                      })()}
+                    </div>
                     <div className="tl-meta">
                       {m.type} · แจ้งเมื่อ {fmtDate(m.date)}
                     </div>

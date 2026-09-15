@@ -132,7 +132,7 @@ export default function AssetDetailPage() {
         date: a.dateOut,
         type: 'assign',
         title: `มอบหมายให้ ${empName}`,
-        meta: deptName ? `หน่วยงาน: ${deptName}` : a.note || '',
+        meta: deptName ? `แผนก: ${deptName}` : a.note || '',
         sortDate: new Date(a.dateOut).getTime(),
       });
       if (a.dateReturn) {
@@ -577,11 +577,11 @@ export default function AssetDetailPage() {
               </div>
 
               <div className="field">
-                <label>หน่วยงาน</label>
+                <label>แผนก</label>
                 <CustomSelect
                   fullWidth
                   options={[
-                    { value: '', label: '-- เลือกหน่วยงาน --' },
+                    { value: '', label: '-- เลือกแผนก --' },
                     ...db.departments.map((d) => ({
                       value: d.id,
                       label: d.name,

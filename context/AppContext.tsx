@@ -87,18 +87,18 @@ interface AppContextType {
 
   // Actions
   getNextAssetId: (categoryId?: string, purchaseDate?: string | null) => string;
-  addAsset: (asset: Partial<Asset> & Omit<Asset, 'id'>) => string;
+  addAsset: (asset: Partial<Asset> & Omit<Asset, 'id'>) => string | null;
   updateAsset: (id: string, updates: Partial<Asset>, silent?: boolean) => void;
   deleteAsset: (id: string) => void;
 
-  addCategory: (category: Omit<Category, 'id'>) => string;
+  addCategory: (category: Omit<Category, 'id'>) => string | null;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => boolean;
 
-  addDepartment: (name: string) => string;
+  addDepartment: (name: string) => string | null;
   deleteDepartment: (id: string) => boolean;
 
-  addEmployee: (employee: Omit<Employee, 'id'>) => string;
+  addEmployee: (employee: Omit<Employee, 'id'>) => string | null;
   updateEmployee: (id: string, updates: Partial<Employee>) => void;
   deleteEmployee: (id: string) => boolean;
 
@@ -357,6 +357,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const category = getCategory(assetData.categoryId);
     const defaultId = generateAssetId(category?.code, assetData.purchaseDate, db.assets);
     const newId = (assetData.id && assetData.id.trim()) ? assetData.id.trim() : defaultId;
+
+    if (db.assets.some((a) => a.id.toLowerCase() === newId.toLowerCase())) {
+      showToast(`รหัสทรัพย์สิน "${newId}" มีอยู่ในระบบแล้ว กรุณาระบุรหัสอื่น`, true);
+      return null;
+    }
+
     const newAsset: Asset = { ...assetData, id: newId };
     saveDatabase({
       ...db,
@@ -397,8 +403,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Category actions
   const addCategory = (categoryData: Omit<Category, 'id'>) => {
+    const code = categoryData.code.trim().toUpperCase();
+    if (!code) {
+      showToast('กรุณาระบุรหัสหมวดหมู่', true);
+      return null;
+    }
+    if (db.categories.some((c) => c.code.toUpperCase() === code)) {
+      showToast(`รหัสหมวดหมู่ "${code}" มีอยู่ในระบบแล้ว`, true);
+      return null;
+    }
+
     const newId = uid('cat');
-    const code = categoryData.code.toUpperCase();
     const newCat: Category = { ...categoryData, id: newId, code };
     saveDatabase({
       ...db,
@@ -415,9 +430,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCategory = (id: string, updates: Partial<Category>) => {
+    if (updates.code) {
+      const code = updates.code.trim().toUpperCase();
+      if (db.categories.some((c) => c.id !== id && c.code.toUpperCase() === code)) {
+        showToast(`รหัสหมวดหมู่ "${code}" ซ้ำกับหมวดหมู่อื่น`, true);
+        return;
+      }
+    }
+
     const nextCats = db.categories.map((c) =>
       c.id === id
-        ? { ...c, ...updates, code: updates.code ? updates.code.toUpperCase() : c.code }
+        ? { ...c, ...updates, code: updates.code ? updates.code.trim().toUpperCase() : c.code }
         : c
     );
     saveDatabase({ ...db, categories: nextCats });
@@ -448,15 +471,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Department actions
   const addDepartment = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      showToast('กรุณาระบุชื่อแผนก', true);
+      return null;
+    }
+    if (db.departments.some((d) => d.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+      showToast(`แผนก "${trimmed}" มีอยู่ในระบบแล้ว`, true);
+      return null;
+    }
+
     const newId = uid('dep');
     saveDatabase({
       ...db,
-      departments: [...db.departments, { id: newId, name: name.trim() }],
+      departments: [...db.departments, { id: newId, name: trimmed }],
     });
     fetch('/api/departments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newId, name: name.trim() }),
+      body: JSON.stringify({ id: newId, name: trimmed }),
     }).catch((err) => console.warn('D1 sync error:', err));
     showToast('เพิ่มแผนกเรียบร้อยแล้ว');
     return newId;
@@ -482,6 +515,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Employee actions
   const addEmployee = (empData: Omit<Employee, 'id'>) => {
+    if (empData.username && empData.username.trim()) {
+      const u = empData.username.trim().toLowerCase();
+      if (db.employees.some((e) => e.username && e.username.trim().toLowerCase() === u)) {
+        showToast(`ชื่อผู้ใช้งาน "${empData.username.trim()}" มีอยู่ในระบบแล้ว`, true);
+        return null;
+      }
+    }
+
     const newId = uid('emp');
     const newEmp = { ...empData, id: newId };
     saveDatabase({
@@ -498,6 +539,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateEmployee = (id: string, updates: Partial<Employee>) => {
+    if (updates.username && updates.username.trim()) {
+      const u = updates.username.trim().toLowerCase();
+      if (db.employees.some((e) => e.id !== id && e.username && e.username.trim().toLowerCase() === u)) {
+        showToast(`ชื่อผู้ใช้งาน "${updates.username.trim()}" มีอยู่ในระบบแล้ว`, true);
+        return;
+      }
+    }
+
     saveDatabase({
       ...db,
       employees: db.employees.map((e) => (e.id === id ? { ...e, ...updates } : e)),
@@ -511,6 +560,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteEmployee = (id: string) => {
+    if (currentUser && currentUser.id === id) {
+      showToast('ไม่สามารถลบบัญชีผู้ใช้งานที่กำลังเข้าสู่ระบบอยู่ได้', true);
+      return false;
+    }
+    const target = db.employees.find((e) => e.id === id);
+    if (target?.role === 'admin') {
+      const adminCount = db.employees.filter((e) => e.role === 'admin').length;
+      if (adminCount <= 1) {
+        showToast('ไม่สามารถลบผู้ดูแลระบบคนสุดท้ายของระบบได้', true);
+        return false;
+      }
+    }
+
     const inUse = db.assignments.some((a) => a.employeeId === id && !a.dateReturn);
     if (inUse) {
       showToast('ไม่สามารถลบได้ เนื่องจากบุคลากรนี้กำลังถือครองทรัพย์สินอยู่', true);
@@ -711,15 +773,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const depRows = db.departments.map((d) => ({
         'รหัสอ้างอิง': d.id,
-        'ชื่อหน่วยงาน': d.name,
+        'ชื่อแผนก': d.name,
       }));
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(depRows), 'หน่วยงาน');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(depRows), 'แผนก');
 
       const empRows = db.employees.map((e) => ({
         'รหัสอ้างอิง': e.id,
         'ชื่อ-นามสกุล': e.name,
-        'รหัสหน่วยงาน': e.department || '',
-        'หน่วยงาน': getDepartment(e.department)?.name || '',
+        'รหัสแผนก': e.department || '',
+        'แผนก': getDepartment(e.department)?.name || '',
         'สถานที่': e.location || '',
       }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empRows), 'บุคลากร');
@@ -729,8 +791,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         'ชื่อทรัพย์สิน': a.name,
         'รหัสหมวดหมู่': a.categoryId,
         'หมวดหมู่': getCategory(a.categoryId)?.name || '',
-        'รหัสหน่วยงาน': a.departmentId || '',
-        'หน่วยงาน': getDepartment(a.departmentId)?.name || '',
+        'รหัสแผนก': a.departmentId || '',
+        'แผนก': getDepartment(a.departmentId)?.name || '',
         'รหัสผู้ถือครอง': a.holderId || '',
         'ผู้ถือครอง': holderDisplayName(a),
         'วันที่จัดซื้อ': a.purchaseDate || '',
@@ -747,8 +809,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         'ทรัพย์สิน': getAsset(a.assetId)?.name || '',
         'รหัสบุคลากร': a.employeeId,
         'ผู้รับมอบ': getEmployee(a.employeeId)?.name || '',
-        'รหัสหน่วยงาน': a.departmentId || '',
-        'หน่วยงาน': getDepartment(a.departmentId)?.name || '',
+        'รหัสแผนก': a.departmentId || '',
+        'แผนก': getDepartment(a.departmentId)?.name || '',
         'วันที่มอบหมาย': a.dateOut || '',
         'วันที่คืน': a.dateReturn || '',
         'หมายเหตุ': a.note || '',
@@ -808,11 +870,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }))
             .filter((c) => c.name);
 
-          const depRows = sheetToRows('หน่วยงาน');
+          const depRows = wb.SheetNames.includes('แผนก') ? sheetToRows('แผนก') : sheetToRows('หน่วยงาน');
           const departments: Department[] = depRows
             .map((r) => ({
               id: String(r['รหัสอ้างอิง'] || uid('dep')),
-              name: String(r['ชื่อหน่วยงาน'] || ''),
+              name: String(r['ชื่อแผนก'] || r['ชื่อหน่วยงาน'] || ''),
             }))
             .filter((d) => d.name);
 
@@ -824,7 +886,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               username: String(r['ชื่อผู้ใช้'] || `user_${idx + 1}`),
               role: (r['สิทธิ์'] === 'admin' || r['สิทธิ์'] === 'staff' ? r['สิทธิ์'] : 'user') as UserRole,
               position: String(r['ตำแหน่ง'] || ''),
-              department: String(r['รหัสหน่วยงาน'] || ''),
+              department: String(r['รหัสแผนก'] || r['รหัสหน่วยงาน'] || ''),
               location: String(r['สถานที่'] || ''),
             }))
             .filter((e) => e.name);
@@ -844,7 +906,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               id: String(r['รหัสอ้างอิง'] || uid('ast')),
               name: String(r['ชื่อทรัพย์สิน'] || ''),
               categoryId: String(r['รหัสหมวดหมู่'] || ''),
-              departmentId: String(r['รหัสหน่วยงาน'] || ''),
+              departmentId: String(r['รหัสแผนก'] || r['รหัสหน่วยงาน'] || ''),
               holderId: r['รหัสผู้ถือครอง'] ? String(r['รหัสผู้ถือครอง']) : null,
               holderName: r['ผู้ถือครอง'] ? String(r['ผู้ถือครอง']) : '',
               purchaseDate: normalizeDateForImport(r['วันที่จัดซื้อ']),
@@ -863,7 +925,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               id: String(r['รหัสอ้างอิง'] || uid('asg')),
               assetId: String(r['รหัสทรัพย์สิน'] || ''),
               employeeId: String(r['รหัสบุคลากร'] || ''),
-              departmentId: String(r['รหัสหน่วยงาน'] || ''),
+              departmentId: String(r['รหัสแผนก'] || r['รหัสหน่วยงาน'] || ''),
               dateOut: normalizeDateForImport(r['วันที่มอบหมาย']),
               dateReturn: r['วันที่คืน'] ? normalizeDateForImport(r['วันที่คืน']) : null,
               note: String(r['หมายเหตุ'] || ''),
@@ -948,15 +1010,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(catRows), 'หมวดหมู่');
 
       const depRows = [
-        { 'ชื่อหน่วยงาน': 'ฝ่ายเทคโนโลยีสารสนเทศ' },
-        { 'ชื่อหน่วยงาน': 'ฝ่ายบริหารงานทั่วไป' },
-        { 'ชื่อหน่วยงาน': 'ฝ่ายการเงินและบัญชี' },
+        { 'ชื่อแผนก': 'ฝ่ายเทคโนโลยีสารสนเทศ' },
+        { 'ชื่อแผนก': 'ฝ่ายบริหารงานทั่วไป' },
+        { 'ชื่อแผนก': 'ฝ่ายการเงินและบัญชี' },
       ];
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(depRows), 'หน่วยงาน');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(depRows), 'แผนก');
 
       const empRows = [
-        { 'ชื่อ-นามสกุล': 'นายสมชาย ใจดี', 'หน่วยงาน': 'ฝ่ายเทคโนโลยีสารสนเทศ', 'สถานที่': 'อาคาร 1 ชั้น 2' },
-        { 'ชื่อ-นามสกุล': 'นางสาววิภาดา รักษ์งาน', 'หน่วยงาน': 'ฝ่ายการเงินและบัญชี', 'สถานที่': 'อาคาร 1 ชั้น 3' },
+        { 'ชื่อ-นามสกุล': 'นายสมชาย ใจดี', 'แผนก': 'ฝ่ายเทคโนโลยีสารสนเทศ', 'สถานที่': 'อาคาร 1 ชั้น 2' },
+        { 'ชื่อ-นามสกุล': 'นางสาววิภาดา รักษ์งาน', 'แผนก': 'ฝ่ายการเงินและบัญชี', 'สถานที่': 'อาคาร 1 ชั้น 3' },
       ];
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empRows), 'บุคลากร');
 
@@ -964,7 +1026,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         {
           'ชื่อทรัพย์สิน': 'คอมพิวเตอร์ตั้งโต๊ะ All-in-One',
           'รหัสหมวดหมู่': 'IT',
-          'หน่วยงาน': 'ฝ่ายเทคโนโลยีสารสนเทศ',
+          'แผนก': 'ฝ่ายเทคโนโลยีสารสนเทศ',
           'ผู้ถือครอง': 'นายสมชาย ใจดี',
           'วันที่จัดซื้อ': '2025-01-15',
           'สถานะ': 'พร้อมใช้',

@@ -302,19 +302,22 @@ export default function MaintenancePage() {
                       </td>
                       <td>
                         {asset ? (
-                          <Link
-                            href={`/assets/${asset.id}`}
-                            style={{ color: 'var(--ink-900)', fontWeight: 600, textDecoration: 'none' }}
-                          >
-                            {asset.name}
-                          </Link>
+                          <div>
+                            <Link
+                              href={`/assets/${asset.id}`}
+                              style={{ color: 'var(--ink-900)', fontWeight: 600, textDecoration: 'none' }}
+                            >
+                              {asset.name}
+                            </Link>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3 }}>
+                              <span className="asset-id-pill">{asset.id}</span>
+                              {asset?.serial && (
+                                <span className="asset-code">SN: {asset.serial}</span>
+                              )}
+                            </div>
+                          </div>
                         ) : (
                           <span className="cell-sub">ทรัพย์สินถูกลบแล้ว</span>
-                        )}
-                        {asset?.serial && (
-                          <div style={{ marginTop: 2 }}>
-                            <span className="asset-code">SN: {asset.serial}</span>
-                          </div>
                         )}
                       </td>
                       <td>
@@ -450,7 +453,7 @@ export default function MaintenancePage() {
                   placeholder="-- เลือกทรัพย์สิน --"
                   options={db.assets.map((a) => ({
                     value: a.id,
-                    label: `${a.name}${a.serial ? ` (${a.serial})` : ''}`,
+                    label: `[${a.id}] ${a.name}${a.serial ? ` (${a.serial})` : ''}`,
                   }))}
                   value={form.assetId}
                   onChange={(val) => setForm({ ...form, assetId: val })}

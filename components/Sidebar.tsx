@@ -87,7 +87,7 @@ export const Sidebar: React.FC = () => {
         </nav>
 
         <div className="sidebar-foot">
-          เวอร์ชัน 2.0 (Next.js) · ข้อมูลบันทึกในเครื่องนี้
+          เวอร์ชัน 2.0 (Next.js)
         </div>
       </aside>
     </>
