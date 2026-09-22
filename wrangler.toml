@@ -1,14 +1,8 @@
 name = "system-assets"
-compatibility_date = "2025-04-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-03-20"
+pages_build_output_dir = "."
 
-# OpenNext Cloudflare adapter output
-main = ".open-next/worker.js"
-assets = { directory = ".open-next/assets", binding = "ASSETS" }
-
-# Cloudflare D1 Database binding
 [[d1_databases]]
 binding = "DB"
-database_name = "system-assets-db"
-database_id = "9b5674d3-c3ae-4121-bfc4-fd5c928a39ad"
-migrations_dir = "d1/migrations"
+database_name = "asset-db"
+database_id = "5a97a707-916f-45e3-b294-65533d6b93c1"

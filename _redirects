@@ -1,0 +1,4 @@
+# SPA fallback for Cloudflare Pages.
+# API routes are handled by Pages Functions (see _routes.json) and take precedence,
+# so every other path serves the app shell with a 200 (no hard 404 on refresh/deep-link).
+/* /index.html 200

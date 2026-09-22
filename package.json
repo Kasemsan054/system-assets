@@ -1,32 +1,22 @@
 {
   "name": "system-assets",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
+  "description": "ระบบทะเบียนทรัพย์สิน — Cloudflare Pages + D1",
   "scripts": {
-    "dev": "next dev",
-    "build": "node scripts/build.js",
-    "build:next": "next build",
-    "build:cf": "node scripts/build.js",
-    "start": "next start",
-    "lint": "next lint",
-    "pages:deploy": "npm run build:cf && npx wrangler deploy",
-    "d1:init:local": "wrangler d1 execute system-assets-db --local --file=d1/schema.sql && wrangler d1 execute system-assets-db --local --file=d1/seed.sql",
-    "d1:migrate:local": "wrangler d1 migrations apply system-assets-db --local",
-    "d1:migrate:remote": "wrangler d1 migrations apply system-assets-db --remote",
-    "d1:execute:local": "wrangler d1 execute system-assets-db --local --command"
-  },
-  "dependencies": {
-    "next": "^16.3.5",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "xlsx": "^0.18.5"
+    "dev": "wrangler pages dev . --port 8788",
+    "db:local": "node init_local_db.js",
+    "db:schema:remote": "wrangler d1 execute asset-db --remote --file=schema.sql",
+    "db:migrate:remote": "wrangler d1 execute asset-db --remote --file=migrations/001_security_and_indexes.sql",
+    "db:migrate2:remote": "wrangler d1 execute asset-db --remote --file=migrations/002_assignment_holder.sql",
+    "deploy": "wrangler pages deploy ."
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.20.6",
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "typescript": "^5.7.0",
-    "wrangler": "^4.131.2"
+    "wrangler": "^4.136.1"
+  },
+  "allowScripts": {
+    "esbuild@0.17.19": true,
+    "sharp@0.33.5": true,
+    "workerd@1.20250718.0": true
   }
 }
