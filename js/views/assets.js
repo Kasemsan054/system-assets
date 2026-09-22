@@ -117,6 +117,7 @@ async function renderAssetsList(view) {
     tbody.style.opacity = '0.6';
 
     let res = { data: [], total: 0 };
+    try {
       res = await API.get('assets', {
         page: assetPagination.page,
         limit: assetPagination.limit,
